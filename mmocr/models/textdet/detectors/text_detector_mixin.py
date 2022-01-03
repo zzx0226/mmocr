@@ -12,7 +12,6 @@ class TextDetectorMixin:
     Args:
         show_score (bool): Whether to show text instance score.
     """
-
     def __init__(self, show_score):
         self.show_score = show_score
 
@@ -60,22 +59,20 @@ class TextDetectorMixin:
             show = False
         # draw bounding boxes
         if boundaries is not None:
-            imshow_pred_boundary(
-                img,
-                boundaries,
-                labels,
-                score_thr=score_thr,
-                boundary_color=bbox_color,
-                text_color=text_color,
-                thickness=thickness,
-                font_scale=font_scale,
-                win_name=win_name,
-                show=show,
-                wait_time=wait_time,
-                out_file=out_file,
-                show_score=self.show_score)
+            imshow_pred_boundary(img,
+                                 boundaries,
+                                 labels,
+                                 score_thr=score_thr,
+                                 boundary_color=bbox_color,
+                                 text_color=text_color,
+                                 thickness=thickness,
+                                 font_scale=font_scale,
+                                 win_name=win_name,
+                                 show=show,
+                                 wait_time=wait_time,
+                                 out_file=out_file,
+                                 show_score=True)
 
         if not (show or out_file):
-            warnings.warn('show==False and out_file is not specified, '
-                          'result image will be returned')
+            warnings.warn('show==False and out_file is not specified, ' 'result image will be returned')
         return img

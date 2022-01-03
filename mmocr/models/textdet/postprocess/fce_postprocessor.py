@@ -25,7 +25,6 @@ class FCEPostprocessor(BasePostprocessor):
             candidates.
         nms_thr (float): The threshold of nms.
     """
-
     def __init__(self,
                  fourier_degree,
                  num_reconstr_points,
@@ -68,9 +67,7 @@ class FCEPostprocessor(BasePostprocessor):
         tr_pred_mask = (score_pred) > self.score_thr
         tr_mask = fill_hole(tr_pred_mask)
 
-        tr_contours, _ = cv2.findContours(
-            tr_mask.astype(np.uint8), cv2.RETR_TREE,
-            cv2.CHAIN_APPROX_SIMPLE)  # opencv4
+        tr_contours, _ = cv2.findContours(tr_mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # opencv4
 
         mask = np.zeros_like(tr_mask)
         boundaries = []
@@ -90,8 +87,7 @@ class FCEPostprocessor(BasePostprocessor):
 
             polygons = fourier2poly(c, self.num_reconstr_points)
             score = score_map[score_mask].reshape(-1, 1)
-            polygons = poly_nms(
-                np.hstack((polygons, score)).tolist(), self.nms_thr)
+            polygons = poly_nms(np.hstack((polygons, score)).tolist(), self.nms_thr)
 
             boundaries = boundaries + polygons
 
@@ -100,8 +96,7 @@ class FCEPostprocessor(BasePostprocessor):
         if self.text_repr_type == 'quad':
             new_boundaries = []
             for boundary in boundaries:
-                poly = np.array(boundary[:-1]).reshape(-1,
-                                                       2).astype(np.float32)
+                poly = np.array(boundary[:-1]).reshape(-1, 2).astype(np.float32)
                 score = boundary[-1]
                 points = cv2.boxPoints(cv2.minAreaRect(poly))
                 points = np.int0(points)

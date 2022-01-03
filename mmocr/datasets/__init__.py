@@ -12,14 +12,14 @@ from .openset_kie_dataset import OpensetKIEDataset
 from .pipelines import CustomFormatBundle, DBNetTargets, FCENetTargets
 from .text_det_dataset import TextDetDataset
 from .uniform_concat_dataset import UniformConcatDataset
+from .CurveDataset import CurveDataset
 
 from .utils import *  # NOQA
 
 __all__ = [
-    'DATASETS', 'IcdarDataset', 'build_dataloader', 'build_dataset',
-    'BaseDataset', 'OCRDataset', 'TextDetDataset', 'CustomFormatBundle',
-    'DBNetTargets', 'OCRSegDataset', 'KIEDataset', 'FCENetTargets',
-    'NerDataset', 'UniformConcatDataset', 'OpensetKIEDataset'
+    'DATASETS', 'IcdarDataset', 'build_dataloader', 'build_dataset', 'BaseDataset', 'OCRDataset', 'TextDetDataset',
+    'CustomFormatBundle', 'DBNetTargets', 'OCRSegDataset', 'KIEDataset', 'FCENetTargets', 'NerDataset', 'UniformConcatDataset',
+    'OpensetKIEDataset', 'CurveDataset'
 ]
 
 __all__ += utils.__all__

@@ -6,8 +6,7 @@ from mmcv.utils import print_log
 
 import mmocr.utils as utils
 from mmocr.core.evaluation import hmean_ic13, hmean_iou
-from mmocr.core.evaluation.utils import (filter_2dlist_result,
-                                         select_top_boundary)
+from mmocr.core.evaluation.utils import (filter_2dlist_result, select_top_boundary)
 from mmocr.core.mask import extract_boundary
 
 
@@ -33,8 +32,7 @@ def output_ranklist(img_results, img_infos, out_file):
         img_result = result
         img_result['file_name'] = name
         sorted_results.append(img_result)
-    sorted_results = sorted(
-        sorted_results, key=itemgetter('hmean'), reverse=False)
+    sorted_results = sorted(sorted_results, key=itemgetter('hmean'), reverse=False)
 
     mmcv.dump(sorted_results, file=out_file)
 
@@ -74,14 +72,7 @@ def get_gt_masks(ann_infos):
     return gt_masks, gt_masks_ignore
 
 
-def eval_hmean(results,
-               img_infos,
-               ann_infos,
-               metrics={'hmean-iou'},
-               score_thr=0.3,
-               rank_list=None,
-               logger=None,
-               **kwargs):
+def eval_hmean(results, img_infos, ann_infos, metrics={'hmean-iou'}, score_thr=0.3, rank_list=None, logger=None, **kwargs):
     """Evaluation in hmean metric.
 
     Args:
@@ -111,8 +102,7 @@ def eval_hmean(results,
         _, texts, scores = extract_boundary(result)
         if len(texts) > 0:
             assert utils.valid_boundary(texts[0], False)
-        valid_texts, valid_text_scores = filter_2dlist_result(
-            texts, scores, score_thr)
+        valid_texts, valid_text_scores = filter_2dlist_result(texts, scores, score_thr)
         preds.append(valid_texts)
         pred_scores.append(valid_text_scores)
 
@@ -123,27 +113,24 @@ def eval_hmean(results,
             msg = '\n' + msg
         print_log(msg, logger=logger)
         best_result = dict(hmean=-1)
-        for iter in range(3, 10):
+        for iter in range(1, 10):
             thr = iter * 0.1
             if thr < score_thr:
                 continue
             top_preds = select_top_boundary(preds, pred_scores, thr)
             if metric == 'hmean-iou':
-                result, img_result = hmean_iou.eval_hmean_iou(
-                    top_preds, gts, gts_ignore)
+                result, img_result = hmean_iou.eval_hmean_iou(top_preds, gts, gts_ignore)
             elif metric == 'hmean-ic13':
-                result, img_result = hmean_ic13.eval_hmean_ic13(
-                    top_preds, gts, gts_ignore)
+                result, img_result = hmean_ic13.eval_hmean_ic13(top_preds, gts, gts_ignore)
             else:
                 raise NotImplementedError
             if rank_list is not None:
                 output_ranklist(img_result, img_infos, rank_list)
 
-            print_log(
-                'thr {0:.2f}, recall: {1[recall]:.3f}, '
-                'precision: {1[precision]:.3f}, '
-                'hmean: {1[hmean]:.3f}'.format(thr, result),
-                logger=logger)
+            print_log('thr {0:.2f}, recall: {1[recall]:.3f}, '
+                      'precision: {1[precision]:.3f}, '
+                      'hmean: {1[hmean]:.3f}'.format(thr, result),
+                      logger=logger)
             if result['hmean'] > best_result['hmean']:
                 best_result = result
         eval_results[metric + ':recall'] = best_result['recall']

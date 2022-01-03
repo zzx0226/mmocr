@@ -3,8 +3,7 @@ import warnings
 
 import torch.nn as nn
 from mmcv.runner import BaseModule
-from mmdet.core import multi_apply
-
+from mmdet.core import multi_apply, bbox2result
 from mmocr.models.builder import HEADS
 from ..postprocess.utils import poly_nms
 from .head_mixin import HeadMixin
@@ -25,35 +24,24 @@ class FCEHead(HeadMixin, BaseModule):
         loss (dict): Config of loss for FCENet.
         postprocessor (dict): Config of postprocessor for FCENet.
     """
-
     def __init__(self,
                  in_channels,
                  scales,
                  fourier_degree=5,
                  nms_thr=0.1,
                  loss=dict(type='FCELoss', num_sample=50),
-                 postprocessor=dict(
-                     type='FCEPostprocessor',
-                     text_repr_type='poly',
-                     num_reconstr_points=50,
-                     alpha=1.0,
-                     beta=2.0,
-                     score_thr=0.3),
+                 postprocessor=dict(type='FCEPostprocessor',
+                                    text_repr_type='poly',
+                                    num_reconstr_points=50,
+                                    alpha=1.0,
+                                    beta=2.0,
+                                    score_thr=0.3),
                  train_cfg=None,
                  test_cfg=None,
-                 init_cfg=dict(
-                     type='Normal',
-                     mean=0,
-                     std=0.01,
-                     override=[
-                         dict(name='out_conv_cls'),
-                         dict(name='out_conv_reg')
-                     ]),
+                 init_cfg=dict(type='Normal', mean=0, std=0.01, override=[dict(name='out_conv_cls'),
+                                                                          dict(name='out_conv_reg')]),
                  **kwargs):
-        old_keys = [
-            'text_repr_type', 'decoding_type', 'num_reconstr_points', 'alpha',
-            'beta', 'score_thr'
-        ]
+        old_keys = ['text_repr_type', 'decoding_type', 'num_reconstr_points', 'alpha', 'beta', 'score_thr']
         for key in old_keys:
             if kwargs.get(key, None):
                 postprocessor[key] = kwargs.get(key)
@@ -88,18 +76,8 @@ class FCEHead(HeadMixin, BaseModule):
         self.out_channels_cls = 4
         self.out_channels_reg = (2 * self.fourier_degree + 1) * 2
 
-        self.out_conv_cls = nn.Conv2d(
-            self.in_channels,
-            self.out_channels_cls,
-            kernel_size=3,
-            stride=1,
-            padding=1)
-        self.out_conv_reg = nn.Conv2d(
-            self.in_channels,
-            self.out_channels_reg,
-            kernel_size=3,
-            stride=1,
-            padding=1)
+        self.out_conv_cls = nn.Conv2d(self.in_channels, self.out_channels_cls, kernel_size=3, stride=1, padding=1)
+        self.out_conv_reg = nn.Conv2d(self.in_channels, self.out_channels_reg, kernel_size=3, stride=1, padding=1)
 
     def forward(self, feats):
         """
@@ -129,15 +107,13 @@ class FCEHead(HeadMixin, BaseModule):
         boundaries = []
         for idx, score_map in enumerate(score_maps):
             scale = self.scales[idx]
-            boundaries = boundaries + self._get_boundary_single(
-                score_map, scale)
+            boundaries = boundaries + self._get_boundary_single(score_map, scale)
 
         # nms
         boundaries = poly_nms(boundaries, self.nms_thr)
 
         if rescale:
-            boundaries = self.resize_boundary(
-                boundaries, 1.0 / img_metas[0]['scale_factor'])
+            boundaries = self.resize_boundary(boundaries, 1.0 / img_metas[0]['scale_factor'])
 
         results = dict(boundary_result=boundaries)
         return results
@@ -147,3 +123,32 @@ class FCEHead(HeadMixin, BaseModule):
         assert score_map[1].shape[1] == 4 * self.fourier_degree + 2
 
         return self.postprocessor(score_map, scale)
+
+    def aug_test(self, imgs, img_metas, rescale=False):
+        """Test function with test time augmentation.
+
+        Args:
+            imgs (list[Tensor]): the outer list indicates test-time
+                augmentations and inner Tensor should have a shape NxCxHxW,
+                which contains all images in the batch.
+            img_metas (list[list[dict]]): the outer list indicates test-time
+                augs (multiscale, flip, etc.) and the inner list indicates
+                images in a batch. each dict has image information.
+            rescale (bool, optional): Whether to rescale the results.
+                Defaults to False.
+
+        Returns:
+            list[list[np.ndarray]]: BBox results of each image and classes.
+                The outer list corresponds to each image. The inner list
+                corresponds to each class.
+        """
+        assert hasattr(self.bbox_head, 'aug_test'), \
+            f'{self.bbox_head.__class__.__name__}' \
+            ' does not support test-time augmentation'
+
+        feats = self.extract_feats(imgs)
+        results_list = self.bbox_head.aug_test(feats, img_metas, rescale=rescale)
+        bbox_results = [
+            bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes) for det_bboxes, det_labels in results_list
+        ]
+        return bbox_results

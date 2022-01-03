@@ -115,6 +115,7 @@ data/*
 *.pkl
 *.pkl.json
 *.log.json
+*.log
 work_dirs/
 exps/
 *~
