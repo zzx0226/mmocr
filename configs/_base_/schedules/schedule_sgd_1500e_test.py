@@ -4,10 +4,10 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2022-01-02 18:46:09
 LastEditors: Zhangzixu
-LastEditTime: 2022-01-02 18:46:41
+LastEditTime: 2022-01-05 11:50:21
 '''
 # optimizer
-optimizer = dict(type='SGD', lr=1e-4, momentum=0.90, weight_decay=5e-4)
+optimizer = dict(type='SGD', lr=2e-4, momentum=0.90, weight_decay=5e-4)
 optimizer_config = dict(grad_clip=None)
-lr_config = dict(policy='poly', power=0.9, min_lr=1e-7, by_epoch=True)
+lr_config = dict(policy='poly', power=0.9, min_lr=1e-6, by_epoch=True)
 total_epochs = 1500

@@ -4,9 +4,9 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2021-12-21 20:18:27
 LastEditors: Zhangzixu
-LastEditTime: 2022-01-02 17:02:19
+LastEditTime: 2022-01-04 11:15:47
 '''
-cp_num = 10
+cp_num = 12
 bs_degree = 4
 reconstr_points = 100
 
@@ -29,7 +29,7 @@ model = dict(type='BSNet',
                        out_channels=256,
                        add_extra_convs='on_output',
                        num_outs=3,
-                       #    start_level=0,
+                       #    start_level=1,
                        relu_before_extra_convs=True,
                        act_cfg=None),
              bbox_head=dict(type='BSHead',

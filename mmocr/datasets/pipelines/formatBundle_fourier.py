@@ -2,9 +2,9 @@
 Description: 
 Version: 1.0
 Autor: Zhangzixu
-Date: 2021-12-26 21:23:20
+Date: 2022-01-04 10:36:31
 LastEditors: Zhangzixu
-LastEditTime: 2022-01-04 14:05:07
+LastEditTime: 2022-01-04 10:36:50
 '''
 import numpy as np
 import torch
@@ -13,7 +13,7 @@ from mmcv.parallel import DataContainer as DC
 
 
 @PIPELINES.register_module()
-class FormatBundle_wl():
+class FormatBundle_Fourier():
     def __init__(self):
         pass
 
@@ -41,6 +41,5 @@ class FormatBundle_wl():
                 f'type {type(data)} cannot be converted to tensor.')
 
     def __call__(self, results):
-        # results['gt_wl'] = DC(self.to_tensor(results['gt_wl']))
         results['gt_fourier'] = DC(self.to_tensor(results['gt_fourier']))
         return results

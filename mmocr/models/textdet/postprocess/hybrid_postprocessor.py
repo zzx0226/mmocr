@@ -95,20 +95,8 @@ class HybridPostprocessor(BasePostprocessor):
             xy_text = np.argwhere(score_mask)
             dxy = xy_text[:, 1] + xy_text[:, 0] * 1j
 
-            x, y = x_pred[score_mask], y_pred[score_mask]
-            c = x + y * 1j
-            c[:, self.fourier_degree] = c[:, self.fourier_degree] + dxy
-            c *= scale
-
-            polygons = fourier2poly(c, self.num_reconstr_points)
-            score = score_map[score_mask].reshape(-1, 1)
-            polygons = poly_nms(
-                np.hstack((polygons, score)).tolist(), self.nms_thr)
-
-            boundaries = boundaries + polygons
             # BS
             xs, ys = bs_x_pred[score_mask], bs_y_pred[score_mask]
-            polygons = []
             score = score_map[score_mask].flatten()
 
             index = np.argmax(score)
@@ -122,9 +110,25 @@ class HybridPostprocessor(BasePostprocessor):
 
             points = bs.bs(uq)
             points = points[:-1]
-            points = np.append(points.flatten(), score[index]).tolist()
-            polygons.append(points)
+            points = np.append(
+                points.flatten(), score[index]).flatten()
+
+            # Fourier
+            x, y = x_pred[score_mask], y_pred[score_mask]
+            c = x + y * 1j
+            c[:, self.fourier_degree] = c[:, self.fourier_degree] + dxy
+            c *= scale
+
+            polygons = fourier2poly(c, self.num_reconstr_points)
+            score = score_map[score_mask].reshape(-1, 1)
+            polygons = np.hstack((polygons, score))
+
+            polygons = np.vstack((points, polygons))
+            polygons = poly_nms(polygons.tolist(), self.nms_thr)
+            # polygons = [points.tolist()]
+
             boundaries = boundaries + polygons
+
         boundaries = poly_nms(boundaries, self.nms_thr)
 
         if self.text_repr_type == 'quad':

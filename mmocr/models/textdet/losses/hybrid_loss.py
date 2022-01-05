@@ -147,7 +147,7 @@ class HybridLoss(nn.Module):
                 ft_y[tr_train_mask.bool()],
                 reduction='none'))
 
-            scale = 2
+            scale = 6
             loss_bs_x = torch.mean(
                 weight *
                 F.smooth_l1_loss(bs_x_map[tr_train_mask.bool()], bs_x_pred[tr_train_mask.bool()], reduction='none')) / scale

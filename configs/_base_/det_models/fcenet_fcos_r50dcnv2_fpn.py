@@ -4,14 +4,13 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2021-12-27 20:30:36
 LastEditors: Zhangzixu
-LastEditTime: 2022-01-05 09:14:42
+LastEditTime: 2022-01-04 15:01:02
 '''
-cp_num = 8
-bs_degree = 4
-reconstr_points = 50
+fourier_degree = 5
+num_sample = 11
 
 model = dict(
-    type='BSNet_fcos',
+    type='FCENet_fcos',
     backbone=dict(type='mmdet.ResNet',
                   depth=50,
                   num_stages=4,
@@ -29,32 +28,25 @@ model = dict(
         type='mmdet.FPN',
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
-        start_level=1,
+        start_level=0,
         add_extra_convs='on_output',  # use P5
         num_outs=5,
         relu_before_extra_convs=True),
     bbox_head=dict(
-        type='BS_FCOSHead',
-        bs_degree=bs_degree,
-        cp_num=cp_num,
+        type='FCE_FCOSHead',
+        fourier_degree=fourier_degree,
+        num_sample=num_sample,
         num_classes=1,
         in_channels=256,
         stacked_convs=4,
         feat_channels=256,
         strides=[8, 16, 32, 64, 128],
-        #    loss=dict(type='BSLoss_fcos', bs_degree=4, cp_num=14),
         loss_cls=dict(type='FocalLoss', use_sigmoid=True,
                       gamma=2.0, alpha=0.25, loss_weight=1.0),
         loss_bbox=dict(type='IoULoss', loss_weight=1.0),
         loss_centerness=dict(type='CrossEntropyLoss',
                              use_sigmoid=True, loss_weight=1.0),
-        postprocessor=dict(type='BSPostprocessor_fcos',
-                           bs_degree=bs_degree,
-                           cp_num=cp_num,
-                           num_reconstr_points=reconstr_points,
-                           alpha=1.0,
-                           beta=2.0,
-                           score_thr=0.1)),
+    ),
     train_cfg=None,
     test_cfg=dict(nms_pre=1000,
                   min_bbox_size=0,

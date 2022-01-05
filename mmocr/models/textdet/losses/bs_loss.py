@@ -121,7 +121,7 @@ class BSLoss(nn.Module):
         loss_reg_y = torch.tensor(0.).float().to(device)
         if tr_train_mask.sum().item() > 0:
             weight = (tr_mask[tr_train_mask.bool()].float() +
-                      tcl_mask[tr_train_mask.bool()].float()) / 2  # 10
+                      tcl_mask[tr_train_mask.bool()].float()) / 8  # 10
             weight = weight.contiguous().view(-1, 1)
 
             # ft_x, ft_y = self.fourier2poly(x_map, y_map)

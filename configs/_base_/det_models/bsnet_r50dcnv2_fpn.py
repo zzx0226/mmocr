@@ -4,7 +4,7 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2021-12-21 20:18:27
 LastEditors: Zhangzixu
-LastEditTime: 2021-12-31 09:36:48
+LastEditTime: 2022-01-04 11:15:32
 '''
 cp_num = 8
 bs_degree = 4

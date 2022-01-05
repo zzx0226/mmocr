@@ -1,3 +1,11 @@
+'''
+Description: 
+Version: 1.0
+Autor: Zhangzixu
+Date: 2021-12-21 19:54:22
+LastEditors: Zhangzixu
+LastEditTime: 2022-01-04 13:29:28
+'''
 model = dict(
     type='FCENet',
     backbone=dict(
