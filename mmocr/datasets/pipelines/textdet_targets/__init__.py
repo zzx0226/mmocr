@@ -4,7 +4,7 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2021-12-21 19:54:22
 LastEditors: Zhangzixu
-LastEditTime: 2022-01-04 10:36:20
+LastEditTime: 2022-01-07 12:11:45
 '''
 # Copyright (c) OpenMMLab. All rights reserved.
 from .base_textdet_targets import BaseTextDetTargets
@@ -22,7 +22,16 @@ from .wlnet_fcos_targets import WLNetFcosTargets
 from .bsnet_targets_out5 import BSNetTargets_Out5
 from .hybridnet_targets import HybridNetTargets
 from .fcenet_fcos_targets import FCENetFcosTargets
+from .bsnet_fcos_targets_tb import BSNetFcosTargets_tb
+from .hybridnet_targets_tb import HybridNetTargets_tb
+from .bsnet_fcos_targets_tb import BSNetFcosTargets_tb
+from .bsnet_targets_tb5 import BSNetTargets_tb
+from .hybridnet_targets_tb_new import HybridNetTargets_tb_new
+from .bsnet_targets_tb5_new import BSNetTargets_tb_new
+
 __all__ = [
     'BaseTextDetTargets', 'PANetTargets', 'PSENetTargets', 'DBNetTargets', 'FCENetTargets', 'TextSnakeTargets', 'DRRGTargets',
-    'BSNetTargets', 'BSNetTargets_bbox', 'WLNetTargets', 'BSNetFcosTargets', 'WLNetFcosTargets', 'BSNetTargets_Out5', 'HybridNetTargets', 'FCENetFcosTargets'
+    'BSNetTargets', 'BSNetTargets_bbox', 'WLNetTargets', 'BSNetFcosTargets', 'WLNetFcosTargets', 'BSNetTargets_Out5',
+    'HybridNetTargets', 'FCENetFcosTargets', 'BSNetFcosTargets_tb', 'HybridNetTargets_tb', 'BSNetFcosTargets_tb',
+    'BSNetTargets_tb', 'HybridNetTargets_tb_new', 'BSNetTargets_tb_new'
 ]

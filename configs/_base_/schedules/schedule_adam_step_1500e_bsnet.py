@@ -4,7 +4,7 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2021-12-27 20:32:37
 LastEditors: Zhangzixu
-LastEditTime: 2022-01-05 10:51:26
+LastEditTime: 2022-01-05 12:26:55
 '''
 # optimizer
 optimizer = dict(type='Adam', lr=1e-4)

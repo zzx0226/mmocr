@@ -96,22 +96,22 @@ class HybridPostprocessor(BasePostprocessor):
             dxy = xy_text[:, 1] + xy_text[:, 0] * 1j
 
             # BS
-            xs, ys = bs_x_pred[score_mask], bs_y_pred[score_mask]
-            score = score_map[score_mask].flatten()
+            # xs, ys = bs_x_pred[score_mask], bs_y_pred[score_mask]
+            # score = score_map[score_mask].flatten()
 
-            index = np.argmax(score)
-            c = np.vstack((xs[index], ys[index])).T
-            c *= scale
-            bs_cp = np.append(c, c[0]).reshape((-1, 2))
-            bs = BS_curve(self.cp_num, self.bs_degree, cp=bs_cp)
-            uq = np.linspace(0, 1, self.num_reconstr_points + 1)
-            bs.set_paras(uq)
-            knots = bs.get_knots()
+            # index = np.argmax(score)
+            # c = np.vstack((xs[index], ys[index])).T
+            # c *= scale
+            # bs_cp = np.append(c, c[0]).reshape((-1, 2))
+            # bs = BS_curve(self.cp_num, self.bs_degree, cp=bs_cp)
+            # uq = np.linspace(0, 1, self.num_reconstr_points + 1)
+            # bs.set_paras(uq)
+            # knots = bs.get_knots()
 
-            points = bs.bs(uq)
-            points = points[:-1]
-            points = np.append(
-                points.flatten(), score[index]).flatten()
+            # points = bs.bs(uq)
+            # points = points[:-1]
+            # points = np.append(
+            #     points.flatten(), score[index]).flatten()
 
             # Fourier
             x, y = x_pred[score_mask], y_pred[score_mask]
@@ -123,7 +123,7 @@ class HybridPostprocessor(BasePostprocessor):
             score = score_map[score_mask].reshape(-1, 1)
             polygons = np.hstack((polygons, score))
 
-            polygons = np.vstack((points, polygons))
+            # polygons = np.vstack((points, polygons))
             polygons = poly_nms(polygons.tolist(), self.nms_thr)
             # polygons = [points.tolist()]
 

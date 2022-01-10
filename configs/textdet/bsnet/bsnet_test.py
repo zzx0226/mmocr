@@ -4,7 +4,7 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2021-12-21 21:42:50
 LastEditors: Zhangzixu
-LastEditTime: 2022-01-03 09:48:24
+LastEditTime: 2022-01-07 11:48:04
 '''
 _base_ = [
     '../../_base_/runtime_10e.py', '../../_base_/schedules/schedule_adam_step_1500e_bsnet.py',
@@ -19,7 +19,7 @@ train_pipeline_ctw1500 = {{_base_.train_pipeline_ctw1500}}
 test_pipeline_ctw1500 = {{_base_.test_pipeline_ctw1500}}
 
 data = dict(samples_per_gpu=8,
-            workers_per_gpu=4,
+            workers_per_gpu=8,
             val_dataloader=dict(samples_per_gpu=1),
             test_dataloader=dict(samples_per_gpu=1),
             train=dict(type='UniformConcatDataset',

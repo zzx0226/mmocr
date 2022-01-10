@@ -24,7 +24,6 @@ class RandomCropInstances:
         positive_sample_ratio (float): The probability of sampling regions
             that go through positive regions.
     """
-
     def __init__(
             self,
             target_size,
@@ -74,8 +73,7 @@ class RandomCropInstances:
     @staticmethod
     def crop_img(img, offset, target_size):
         h, w = img.shape[:2]
-        br = np.min(
-            np.stack((np.array(offset) + np.array(target_size), np.array((h, w)))), axis=0)
+        br = np.min(np.stack((np.array(offset) + np.array(target_size), np.array((h, w)))), axis=0)
         return img[offset[0]:br[0], offset[1]:br[1]], np.array([offset[1], offset[0], br[1], br[0]])
 
     def crop_bboxes(self, bboxes, canvas_bbox):
@@ -86,13 +84,11 @@ class RandomCropInstances:
 
         for idx, bbox in enumerate(bboxes):
             poly = eval_utils.box2polygon(bbox)
-            area, inters = eval_utils.poly_intersection(
-                poly, canvas_poly, return_poly=True)
+            area, inters = eval_utils.poly_intersection(poly, canvas_poly, return_poly=True)
             if area == 0:
                 continue
             xmin, ymin, xmax, ymax = inters.bounds
-            kept_bboxes += [np.array([xmin - tl[0], ymin - tl[1],
-                                     xmax - tl[0], ymax - tl[1]], dtype=np.float32)]
+            kept_bboxes += [np.array([xmin - tl[0], ymin - tl[1], xmax - tl[0], ymax - tl[1]], dtype=np.float32)]
             kept_inx += [idx]
 
         if len(kept_inx) == 0:
@@ -119,12 +115,10 @@ class RandomCropInstances:
         mask = None
         if len(gt_mask.masks) > 0:
             mask = self.generate_mask(gt_mask, self.mask_type)
-        results['crop_offset'] = self.sample_offset(
-            mask, results['img'].shape[:2])
+        results['crop_offset'] = self.sample_offset(mask, results['img'].shape[:2])
 
         # crop img. bbox = [x1,y1,x2,y2]
-        img, bbox = self.crop_img(
-            results['img'], results['crop_offset'], self.target_size)
+        img, bbox = self.crop_img(results['img'], results['crop_offset'], self.target_size)
         results['img'] = img
         img_shape = img.shape
         results['img_shape'] = img_shape
@@ -141,21 +135,17 @@ class RandomCropInstances:
                 if 'gt_labels' in results:
                     ori_labels = results['gt_labels']
                     ori_inst_num = len(ori_labels)
-                    results['gt_labels'] = [ori_labels[idx]
-                                            for idx in range(ori_inst_num) if idx in kept_inx]
+                    results['gt_labels'] = [ori_labels[idx] for idx in range(ori_inst_num) if idx in kept_inx]
                 # ignore g_masks accordingly
                 if 'gt_masks' in results:
                     ori_mask = results['gt_masks'].masks
-                    kept_mask = [ori_mask[idx]
-                                 for idx in range(ori_inst_num) if idx in kept_inx]
+                    kept_mask = [ori_mask[idx] for idx in range(ori_inst_num) if idx in kept_inx]
                     target_h, target_w = bbox[3] - bbox[1], bbox[2] - bbox[0]
                     if len(kept_inx) > 0:
                         kept_mask = np.stack(kept_mask)
                     else:
-                        kept_mask = np.empty(
-                            (0, target_h, target_w), dtype=np.float32)
-                    results['gt_masks'] = BitmapMasks(
-                        kept_mask, target_h, target_w)
+                        kept_mask = np.empty((0, target_h, target_w), dtype=np.float32)
+                    results['gt_masks'] = BitmapMasks(kept_mask, target_h, target_w)
 
         return results
 
@@ -167,7 +157,6 @@ class RandomCropInstances:
 @PIPELINES.register_module()
 class RandomRotateTextDet:
     """Randomly rotate images."""
-
     def __init__(self, rotate_ratio=1.0, max_angle=10):
         self.rotate_ratio = rotate_ratio
         self.max_angle = max_angle
@@ -181,8 +170,7 @@ class RandomRotateTextDet:
     def rotate_img(img, angle):
         h, w = img.shape[:2]
         rotation_matrix = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1)
-        img_target = cv2.warpAffine(
-            img, rotation_matrix, (w, h), flags=cv2.INTER_NEAREST)
+        img_target = cv2.warpAffine(img, rotation_matrix, (w, h), flags=cv2.INTER_NEAREST)
         assert img_target.shape == img.shape
         return img_target
 
@@ -215,7 +203,6 @@ class RandomRotateTextDet:
 class ColorJitter:
     """An interface for torch color jitter so that it can be invoked in
     mmdetection pipeline."""
-
     def __init__(self, **kwargs):
         self.transform = transforms.ColorJitter(**kwargs)
 
@@ -241,7 +228,6 @@ class ScaleAspectJitter(Resize):
     Allowed resize types are `around_min_img_scale`, `long_short_bound`, and
     `indep_sample_in_range`.
     """
-
     def __init__(self,
                  img_scale=None,
                  multiscale_mode='range',
@@ -252,11 +238,9 @@ class ScaleAspectJitter(Resize):
                  long_size_bound=None,
                  short_size_bound=None,
                  scale_range=None):
-        super().__init__(img_scale=img_scale, multiscale_mode=multiscale_mode,
-                         ratio_range=ratio_range, keep_ratio=keep_ratio)
+        super().__init__(img_scale=img_scale, multiscale_mode=multiscale_mode, ratio_range=ratio_range, keep_ratio=keep_ratio)
         assert not keep_ratio
-        assert resize_type in ['around_min_img_scale',
-                               'long_short_bound', 'indep_sample_in_range']
+        assert resize_type in ['around_min_img_scale', 'long_short_bound', 'indep_sample_in_range']
         self.resize_type = resize_type
 
         if resize_type == 'indep_sample_in_range':
@@ -323,7 +307,6 @@ class ScaleAspectJitter(Resize):
 class AffineJitter:
     """An interface for torchvision random affine so that it can be invoked in
     mmdet pipeline."""
-
     def __init__(self, degrees=4, translate=(0.02, 0.04), scale=(0.9, 1.1), shear=None, resample=False, fillcolor=0):
         self.transform = transforms.RandomAffine(degrees=degrees,
                                                  translate=translate,
@@ -351,7 +334,6 @@ class AffineJitter:
 class RandomCropPolyInstances:
     """Randomly crop images and make sure to contain at least one intact
     instance."""
-
     def __init__(self, instance_key='gt_masks', crop_ratio=5.0 / 8.0, min_side_ratio=0.4):
         super().__init__()
         self.instance_key = instance_key
@@ -371,8 +353,7 @@ class RandomCropPolyInstances:
         region_starts = np.where(diff_array < 0)[0]
         region_ends = np.where(diff_array > 0)[0]
         region_ind = np.random.randint(0, len(region_starts))
-        start = np.random.randint(
-            region_starts[region_ind], region_ends[region_ind])
+        start = np.random.randint(region_starts[region_ind], region_ends[region_ind])
 
         end_array = valid_array.copy()
         min_end = max(start + min_len, min_end)
@@ -382,8 +363,7 @@ class RandomCropPolyInstances:
         region_starts = np.where(diff_array < 0)[0]
         region_ends = np.where(diff_array > 0)[0]
         region_ind = np.random.randint(0, len(region_starts))
-        end = np.random.randint(
-            region_starts[region_ind], region_ends[region_ind])
+        end = np.random.randint(region_starts[region_ind], region_ends[region_ind])
         return start, end
 
     def sample_crop_box(self, img_size, results):
@@ -426,10 +406,8 @@ class RandomCropPolyInstances:
         min_w = int(w * self.min_side_ratio)
         min_h = int(h * self.min_side_ratio)
 
-        x1, x2 = self.sample_valid_start_end(
-            x_valid_array, min_w, max_x_start, min_x_end)
-        y1, y2 = self.sample_valid_start_end(
-            y_valid_array, min_h, max_y_start, min_y_end)
+        x1, x2 = self.sample_valid_start_end(x_valid_array, min_w, max_x_start, min_x_end)
+        y1, y2 = self.sample_valid_start_end(y_valid_array, min_h, max_y_start, min_y_end)
 
         return np.array([x1, y1, x2, y2])
 
@@ -548,20 +526,16 @@ class RandomRotatePolyInstances:
 
         if self.pad_with_fixed_color:
             target_img = cv2.warpAffine(img,
-                                        rotation_matrix, (canvas_size[1],
-                                                          canvas_size[0]),
+                                        rotation_matrix, (canvas_size[1], canvas_size[0]),
                                         flags=cv2.INTER_NEAREST,
                                         borderValue=self.pad_value)
         else:
             mask = np.zeros_like(img)
-            (h_ind, w_ind) = (np.random.randint(
-                0, h * 7 // 8), np.random.randint(0, w * 7 // 8))
+            (h_ind, w_ind) = (np.random.randint(0, h * 7 // 8), np.random.randint(0, w * 7 // 8))
             img_cut = img[h_ind:(h_ind + h // 9), w_ind:(w_ind + w // 9)]
             img_cut = mmcv.imresize(img_cut, (canvas_size[1], canvas_size[0]))
-            mask = cv2.warpAffine(
-                mask, rotation_matrix, (canvas_size[1], canvas_size[0]), borderValue=[1, 1, 1])
-            target_img = cv2.warpAffine(
-                img, rotation_matrix, (canvas_size[1], canvas_size[0]), borderValue=[0, 0, 0])
+            mask = cv2.warpAffine(mask, rotation_matrix, (canvas_size[1], canvas_size[0]), borderValue=[1, 1, 1])
+            target_img = cv2.warpAffine(img, rotation_matrix, (canvas_size[1], canvas_size[0]), borderValue=[0, 0, 0])
             target_img = target_img + img_cut * mask
 
         return target_img
@@ -572,8 +546,7 @@ class RandomRotatePolyInstances:
             h, w = img.shape[:2]
             angle = self.sample_angle(self.max_angle)
             canvas_size = self.cal_canvas_size((h, w), angle)
-            center_shift = (
-                int((canvas_size[1] - w) / 2), int((canvas_size[0] - h) / 2))
+            center_shift = (int((canvas_size[1] - w) / 2), int((canvas_size[0] - h) / 2))
 
             # rotate image
             results['rotated_poly_angle'] = angle
@@ -589,8 +562,7 @@ class RandomRotatePolyInstances:
                 masks = results[key].masks
                 rotated_masks = []
                 for mask in masks:
-                    rotated_mask = self.rotate(
-                        (w / 2, h / 2), mask[0], angle, center_shift)
+                    rotated_mask = self.rotate((w / 2, h / 2), mask[0], angle, center_shift)
                     rotated_masks.append([rotated_mask])
 
                 results[key] = PolygonMasks(rotated_masks, *(img_shape[:2]))
@@ -643,8 +615,7 @@ class SquareResizePad:
             expand_img = np.ones((pad_size, pad_size, 3), dtype=np.uint8)
             expand_img[:] = self.pad_value
         else:
-            (h_ind, w_ind) = (np.random.randint(
-                0, h * 7 // 8), np.random.randint(0, w * 7 // 8))
+            (h_ind, w_ind) = (np.random.randint(0, h * 7 // 8), np.random.randint(0, w * 7 // 8))
             img_cut = img[h_ind:(h_ind + h // 9), w_ind:(w_ind + w // 9)]
             expand_img = mmcv.imresize(img_cut, (pad_size, pad_size))
         if h > w:
@@ -762,6 +733,7 @@ class RandomCropFlip:
 
     def __call__(self, results):
         results['Stage1_flip'] = False
+        results['Stage1_Type'] = 'N'
         for i in range(self.iter_num):
             results = self.random_crop_flip(results)
         return results
@@ -781,8 +753,7 @@ class RandomCropFlip:
         area = h * w
         pad_h = int(h * self.pad_ratio)
         pad_w = int(w * self.pad_ratio)
-        h_axis, w_axis = self.generate_crop_target(
-            image, all_polygons, pad_h, pad_w)
+        h_axis, w_axis = self.generate_crop_target(image, all_polygons, pad_h, pad_w)
         if len(h_axis) == 0 or len(w_axis) == 0:
             return results
 
@@ -807,8 +778,7 @@ class RandomCropFlip:
                 # area too small
                 continue
 
-            pts = np.stack([[xmin, xmax, xmax, xmin], [
-                           ymin, ymin, ymax, ymax]]).T.astype(np.int32)
+            pts = np.stack([[xmin, xmax, xmax, xmin], [ymin, ymin, ymax, ymax]]).T.astype(np.int32)
             pp = plg(pts)
             fail_flag = False
             for polygon in polygons:
@@ -857,22 +827,28 @@ class RandomCropFlip:
                 for idx, polygon in enumerate(polys_new):
                     poly = polygon[0].reshape(-1, 2)
                     poly[:, 0] = width - poly[:, 0] + 2 * xmin
+                    # poly = np.flipud(poly)
                     polys_new[idx] = [poly.reshape(-1, )]
                 for idx, polygon in enumerate(ign_polys_new):
                     poly = polygon[0].reshape(-1, 2)
                     poly[:, 0] = width - poly[:, 0] + 2 * xmin
+                    # poly = np.flipud(poly)
                     ign_polys_new[idx] = [poly.reshape(-1, )]
                 results['Stage1_flip'] = True
+                results['Stage1_Type'] = 'H'
             elif select_type == 1:
                 for idx, polygon in enumerate(polys_new):
                     poly = polygon[0].reshape(-1, 2)
                     poly[:, 1] = height - poly[:, 1] + 2 * ymin
-                    polys_new[idx] = [poly.reshape(-1, )]
+                    # poly = np.flipud(poly)
+                    polys_new[idx] = [poly.reshape(-1, )]  #polygon = np.flipud(polygon)
                 for idx, polygon in enumerate(ign_polys_new):
                     poly = polygon[0].reshape(-1, 2)
                     poly[:, 1] = height - poly[:, 1] + 2 * ymin
+                    # poly = np.flipud(poly)
                     ign_polys_new[idx] = [poly.reshape(-1, )]
                 results['Stage1_flip'] = True
+                results['Stage1_Type'] = 'V'
             else:
                 for idx, polygon in enumerate(polys_new):
                     poly = polygon[0].reshape(-1, 2)
@@ -884,11 +860,11 @@ class RandomCropFlip:
                     poly[:, 0] = width - poly[:, 0] + 2 * xmin
                     poly[:, 1] = height - poly[:, 1] + 2 * ymin
                     ign_polys_new[idx] = [poly.reshape(-1, )]
+                results['Stage1_Type'] = 'B'
             polygons = polys_keep + polys_new
             ignore_polygons = ign_polys_keep + ign_polys_new
             results['gt_masks'] = PolygonMasks(polygons, *(image.shape[:2]))
-            results['gt_masks_ignore'] = PolygonMasks(
-                ignore_polygons, *(image.shape[:2]))
+            results['gt_masks_ignore'] = PolygonMasks(ignore_polygons, *(image.shape[:2]))
 
         return results
 
@@ -953,14 +929,12 @@ class PyramidRescale:
         :Modified:
             - | ``img`` (ndarray): The modified image.
     """
-
     def __init__(self, factor=4, base_shape=(128, 512), randomize_factor=True):
         assert isinstance(factor, int)
         assert isinstance(base_shape, list) or isinstance(base_shape, tuple)
         assert len(base_shape) == 2
         assert isinstance(randomize_factor, bool)
-        self.factor = factor if not randomize_factor else np.random.randint(
-            0, factor + 1)
+        self.factor = factor if not randomize_factor else np.random.randint(0, factor + 1)
         self.base_w, self.base_h = base_shape
 
     def __call__(self, results):

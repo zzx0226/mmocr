@@ -22,7 +22,10 @@ from .wlnet_fcos import WLNet_FCOS
 from .bsnet_fcos import BSNet_fcos
 from .hybridnet import HybridNet
 from .fcenet_fcos import FCENet_fcos
+from .bsnet_tood import BSNet_TOOD
+from .single_stage import SingleStageDetectorTood
+
 __all__ = [
     'TextDetectorMixin', 'SingleStageTextDetector', 'OCRMaskRCNN', 'DBNet', 'PANet', 'PSENet', 'TextSnake', 'FCENet', 'DRRG',
-    'BSNet', 'WLNet', 'BSNet_fcos', 'WLNet_FCOS', 'HybridNet', 'FCENet_fcos'
+    'BSNet', 'WLNet', 'BSNet_fcos', 'WLNet_FCOS', 'HybridNet', 'FCENet_fcos', 'BSNet_TOOD', 'SingleStageDetectorTood'
 ]

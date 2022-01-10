@@ -4,7 +4,7 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2021-12-21 19:54:22
 LastEditors: Zhangzixu
-LastEditTime: 2022-01-03 13:18:21
+LastEditTime: 2022-01-07 11:54:09
 '''
 # Copyright (c) OpenMMLab. All rights reserved.
 from .db_loss import DBLoss
@@ -19,6 +19,11 @@ from .wl_loss import WLLoss
 from .bs_loss_fcos import BSLoss_fcos
 from .bs_loss_out5 import BSLoss_Out5
 from .hybrid_loss import HybridLoss
+from .hybrid_loss_tb import HybridLoss_tb
+from .bs_loss_tb import BSLoss_tb
+from .bs_loss_tb_new import BSLoss_tb_new
+
 __all__ = [
-    'PANLoss', 'PSELoss', 'DBLoss', 'TextSnakeLoss', 'FCELoss', 'DRRGLoss', 'BSLoss', 'BSLoss_bbox', 'WLLoss', 'BSLoss_fcos', 'BSLoss_Out5', 'HybridLoss'
+    'PANLoss', 'PSELoss', 'DBLoss', 'TextSnakeLoss', 'FCELoss', 'DRRGLoss', 'BSLoss', 'BSLoss_bbox', 'WLLoss', 'BSLoss_fcos',
+    'BSLoss_Out5', 'HybridLoss', 'HybridLoss_tb', 'BSLoss_tb', 'BSLoss_tb_new'
 ]
