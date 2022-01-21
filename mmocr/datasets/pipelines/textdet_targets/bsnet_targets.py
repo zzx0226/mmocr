@@ -75,8 +75,7 @@ class BSNetTargets(TextSnakeTargets):
                 nextPoint = points[i + 1]
             except:
                 nextPoint = points[0]
-            eachLengthPoints.append(
-                int(np.linalg.norm((point - nextPoint)) * ResampleNum / perimeter))
+            eachLengthPoints.append(int(np.linalg.norm((point - nextPoint)) * ResampleNum / perimeter))
 
         eachLengthPoints = np.array(eachLengthPoints)
         # print(eachLengthPoints.sum())
@@ -135,36 +134,25 @@ class BSNetTargets(TextSnakeTargets):
             assert len(poly) == 1
             polygon_points = poly[0].reshape(-1, 2)
             _, _, top_line, bot_line = self.reorder_poly_edge(polygon_points)
-            resampled_top_line, resampled_bot_line = self.resample_sidelines(
-                top_line, bot_line, self.resample_step)
+            resampled_top_line, resampled_bot_line = self.resample_sidelines(top_line, bot_line, self.resample_step)
             resampled_bot_line = resampled_bot_line[::-1]
             center_line = (resampled_top_line + resampled_bot_line) / 2
 
-            line_head_shrink_len = norm(
-                resampled_top_line[0] - resampled_bot_line[0]) / 4.0
-            line_tail_shrink_len = norm(
-                resampled_top_line[-1] - resampled_bot_line[-1]) / 4.0
+            line_head_shrink_len = norm(resampled_top_line[0] - resampled_bot_line[0]) / 4.0
+            line_tail_shrink_len = norm(resampled_top_line[-1] - resampled_bot_line[-1]) / 4.0
             head_shrink_num = int(line_head_shrink_len // self.resample_step)
             tail_shrink_num = int(line_tail_shrink_len // self.resample_step)
             if len(center_line) > head_shrink_num + tail_shrink_num + 2:
-                center_line = center_line[head_shrink_num:len(
-                    center_line) - tail_shrink_num]
-                resampled_top_line = resampled_top_line[head_shrink_num:len(
-                    resampled_top_line) - tail_shrink_num]
-                resampled_bot_line = resampled_bot_line[head_shrink_num:len(
-                    resampled_bot_line) - tail_shrink_num]
+                center_line = center_line[head_shrink_num:len(center_line) - tail_shrink_num]
+                resampled_top_line = resampled_top_line[head_shrink_num:len(resampled_top_line) - tail_shrink_num]
+                resampled_bot_line = resampled_bot_line[head_shrink_num:len(resampled_bot_line) - tail_shrink_num]
 
             for i in range(0, len(center_line) - 1):
-                tl = center_line[i] + (resampled_top_line[i] -
-                                       center_line[i]) * self.center_region_shrink_ratio
-                tr = center_line[i + 1] + (resampled_top_line[i + 1] -
-                                           center_line[i + 1]) * self.center_region_shrink_ratio
-                br = center_line[i + 1] + (resampled_bot_line[i + 1] -
-                                           center_line[i + 1]) * self.center_region_shrink_ratio
-                bl = center_line[i] + (resampled_bot_line[i] -
-                                       center_line[i]) * self.center_region_shrink_ratio
-                current_center_box = np.vstack(
-                    [tl, tr, br, bl]).astype(np.int32)
+                tl = center_line[i] + (resampled_top_line[i] - center_line[i]) * self.center_region_shrink_ratio
+                tr = center_line[i + 1] + (resampled_top_line[i + 1] - center_line[i + 1]) * self.center_region_shrink_ratio
+                br = center_line[i + 1] + (resampled_bot_line[i + 1] - center_line[i + 1]) * self.center_region_shrink_ratio
+                bl = center_line[i] + (resampled_bot_line[i] - center_line[i]) * self.center_region_shrink_ratio
+                current_center_box = np.vstack([tl, tr, br, bl]).astype(np.int32)
                 center_region_boxes.append(current_center_box)
 
         cv2.fillPoly(center_region_mask, center_region_boxes, 1)
@@ -211,15 +199,13 @@ class BSNetTargets(TextSnakeTargets):
 
         for poly in text_polys:
             assert len(poly) == 1
-            text_instance = [[poly[0][i], poly[0][i + 1]]
-                             for i in range(0, len(poly[0]), 2)]
+            text_instance = [[poly[0][i], poly[0][i + 1]] for i in range(0, len(poly[0]), 2)]
             mask = np.zeros((h, w), dtype=np.uint8)
             polygon = np.array(text_instance).reshape((1, -1, 2))
 
             polygon = self.normalize_bs_polygon(polygon[0])
             cv2.fillPoly(mask, [polygon.astype(np.int32)], 1)
-            cp_coordinates = self.cal_cp_coordinates(
-                polygon, self.bs_degree, self.cp_num, self.resample_num)
+            cp_coordinates = self.cal_cp_coordinates(polygon, self.bs_degree, self.cp_num, self.resample_num)
             for i in range(0, cp_num):
                 x_map[i, :, :] = mask * cp_coordinates[i, 0] + \
                     (1 - mask) * x_map[i, :, :]
@@ -246,8 +232,7 @@ class BSNetTargets(TextSnakeTargets):
         level_maps = []
         for poly in text_polys:
             assert len(poly) == 1
-            text_instance = [[poly[0][i], poly[0][i + 1]]
-                             for i in range(0, len(poly[0]), 2)]
+            text_instance = [[poly[0][i], poly[0][i + 1]] for i in range(0, len(poly[0]), 2)]
             polygon = np.array(text_instance, dtype=np.int).reshape((1, -1, 2))
             _, _, box_w, box_h = cv2.boundingRect(polygon)
             proportion = max(box_h, box_w) / (h + 1e-8)
@@ -258,35 +243,29 @@ class BSNetTargets(TextSnakeTargets):
 
         for ignore_poly in ignore_polys:
             assert len(ignore_poly) == 1
-            text_instance = [[ignore_poly[0][i], ignore_poly[0][i + 1]]
-                             for i in range(0, len(ignore_poly[0]), 2)]
+            text_instance = [[ignore_poly[0][i], ignore_poly[0][i + 1]] for i in range(0, len(ignore_poly[0]), 2)]
             polygon = np.array(text_instance, dtype=np.int).reshape((1, -1, 2))
             _, _, box_w, box_h = cv2.boundingRect(polygon)
             proportion = max(box_h, box_w) / (h + 1e-8)
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    lv_ignore_polys[ind].append(
-                        [ignore_poly[0] / lv_size_divs[ind]])
+                    lv_ignore_polys[ind].append([ignore_poly[0] / lv_size_divs[ind]])
 
         for ind, size_divisor in enumerate(lv_size_divs):
             current_level_maps = []
             level_img_size = (h // size_divisor, w // size_divisor)
 
-            text_region = self.generate_text_region_mask(
-                level_img_size, lv_text_polys[ind])[None]
+            text_region = self.generate_text_region_mask(level_img_size, lv_text_polys[ind])[None]
             current_level_maps.append(text_region)
 
-            center_region = self.generate_center_region_mask(
-                level_img_size, lv_text_polys[ind])[None]
+            center_region = self.generate_center_region_mask(level_img_size, lv_text_polys[ind])[None]
             current_level_maps.append(center_region)
 
-            effective_mask = self.generate_effective_mask(
-                level_img_size, lv_ignore_polys[ind])[None]
+            effective_mask = self.generate_effective_mask(level_img_size, lv_ignore_polys[ind])[None]
             current_level_maps.append(effective_mask)
 
-            cp_x_maps, cp_y_maps = self.generate_cp_maps(
-                level_img_size, lv_text_polys[ind])
+            cp_x_maps, cp_y_maps = self.generate_cp_maps(level_img_size, lv_text_polys[ind])
             current_level_maps.append(cp_x_maps)
             current_level_maps.append(cp_y_maps)
 
@@ -314,12 +293,10 @@ class BSNetTargets(TextSnakeTargets):
 
         h, w, _ = results['img_shape']
 
-        level_maps = self.generate_level_targets(
-            (h, w), polygon_masks, polygon_masks_ignore)
+        level_maps = self.generate_level_targets((h, w), polygon_masks, polygon_masks_ignore)
 
         results['mask_fields'].clear()  # rm gt_masks encoded by polygons
-        mapping = {
-            'p3_maps': level_maps[0], 'p4_maps': level_maps[1], 'p5_maps': level_maps[2]}
+        mapping = {'p3_maps': level_maps[0], 'p4_maps': level_maps[1], 'p5_maps': level_maps[2]}
         for key, value in mapping.items():
             results[key] = value
 

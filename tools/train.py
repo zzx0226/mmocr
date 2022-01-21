@@ -24,23 +24,19 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector.')
     parser.add_argument('config', help='Train config file path.')
     parser.add_argument('--work-dir', help='The dir to save logs and models.')
-    parser.add_argument(
-        '--load-from', help='The checkpoint file to load from.')
-    parser.add_argument(
-        '--resume-from', help='The checkpoint file to resume from.')
-    parser.add_argument('--no-validate', action='store_true',
-                        help='Whether not to evaluate the checkpoint during training.')
+    parser.add_argument('--load-from', help='The checkpoint file to load from.')
+    parser.add_argument('--resume-from', help='The checkpoint file to resume from.')
+    parser.add_argument('--no-validate', action='store_true', help='Whether not to evaluate the checkpoint during training.')
     group_gpus = parser.add_mutually_exclusive_group()
-    group_gpus.add_argument(
-        '--gpus', type=int, help='Number of gpus to use ' '(only applicable to non-distributed training).')
+    group_gpus.add_argument('--gpus', type=int, help='Number of gpus to use '
+                            '(only applicable to non-distributed training).')
     group_gpus.add_argument('--gpu-ids',
                             type=int,
                             nargs='+',
                             help='ids of gpus to use '
                             '(only applicable to non-distributed training).')
     parser.add_argument('--seed', type=int, default=None, help='Random seed.')
-    parser.add_argument('--deterministic', action='store_true',
-                        help='Whether to set deterministic options for CUDNN backend.')
+    parser.add_argument('--deterministic', action='store_true', help='Whether to set deterministic options for CUDNN backend.')
     parser.add_argument('--options',
                         nargs='+',
                         action=DictAction,
@@ -92,11 +88,9 @@ def main():
         mc = Config.fromfile(args.mc_config)
         if isinstance(cfg.data.train, list):
             for i in range(len(cfg.data.train)):
-                cfg.data.train[i].pipeline[0].update(
-                    file_client_args=mc['mc_file_client_args'])
+                cfg.data.train[i].pipeline[0].update(file_client_args=mc['mc_file_client_args'])
         else:
-            cfg.data.train.pipeline[0].update(
-                file_client_args=mc['mc_file_client_args'])
+            cfg.data.train.pipeline[0].update(file_client_args=mc['mc_file_client_args'])
 
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
@@ -108,8 +102,7 @@ def main():
         cfg.work_dir = args.work_dir
     elif cfg.get('work_dir', None) is None:
         # use config filename as default work_dir if cfg.work_dir is None
-        cfg.work_dir = osp.join(
-            './work_dirs', osp.splitext(osp.basename(args.config))[0])
+        cfg.work_dir = osp.join('./work_dirs', osp.splitext(osp.basename(args.config))[0])
     if args.load_from is not None:
         cfg.load_from = args.load_from
     if args.resume_from is not None:
@@ -145,8 +138,7 @@ def main():
     env_info_dict = collect_env()
     env_info = '\n'.join([(f'{k}: {v}') for k, v in env_info_dict.items()])
     dash_line = '-' * 60 + '\n'
-    logger.info('Environment info:\n' + dash_line +
-                env_info + '\n' + dash_line)
+    logger.info('Environment info:\n' + dash_line + env_info + '\n' + dash_line)
     meta['env_info'] = env_info
     meta['config'] = cfg.pretty_text
     # log some basic info
@@ -155,15 +147,14 @@ def main():
 
     # set random seeds
     seed = init_random_seed(args.seed)
-    logger.info(
-        f'Set random seed to {seed}, ' f'deterministic: {args.deterministic}')
+    logger.info(f'Set random seed to {seed}, '
+                f'deterministic: {args.deterministic}')
     set_random_seed(seed, deterministic=args.deterministic)
     cfg.seed = seed
     meta['seed'] = seed
     meta['exp_name'] = osp.basename(args.config)
 
-    model = build_detector(cfg.model, train_cfg=cfg.get(
-        'train_cfg'), test_cfg=cfg.get('test_cfg'))
+    model = build_detector(cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
     model.init_weights()
 
     datasets = [build_dataset(cfg.data.train)]
@@ -183,8 +174,7 @@ def main():
     if cfg.checkpoint_config is not None:
         # save mmdet version, config file content and class names in
         # checkpoints as meta data
-        cfg.checkpoint_config.meta = dict(
-            mmocr_version=__version__ + get_git_hash()[:7], CLASSES=datasets[0].CLASSES)
+        cfg.checkpoint_config.meta = dict(mmocr_version=__version__ + get_git_hash()[:7], CLASSES=datasets[0].CLASSES)
     # add an attribute for visualization convenience
     model.CLASSES = datasets[0].CLASSES
     train_detector(model,

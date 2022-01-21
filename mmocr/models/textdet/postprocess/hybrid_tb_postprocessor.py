@@ -93,44 +93,44 @@ class HybridTBPostprocessor(BasePostprocessor):
             dxy = xy_text[:, 1] + xy_text[:, 0] * 1j
 
             # BS
-            # xs, ys = bs_x_pred[score_mask], bs_y_pred[score_mask]
-            # score = score_map[score_mask].flatten()
+            xs, ys = bs_x_pred[score_mask], bs_y_pred[score_mask]
+            score = score_map[score_mask].flatten()
 
-            # index = np.argmax(score)
-            # c = np.vstack((xs[index], ys[index])).T
-            # split_index = int(len(c) / 2)
-            # c *= scale
-            # TopCP = c[:split_index].reshape(-1, 2)
-            # BottomCP = c[split_index:].reshape(-1, 2)
+            index = np.argmax(score)
+            c = np.vstack((xs[index], ys[index])).T
+            split_index = int(len(c) / 2)
+            c *= scale
+            TopCP = c[:split_index].reshape(-1, 2)
+            BottomCP = c[split_index:].reshape(-1, 2)
 
-            # bs = BS_curve(self.cp_num - 1, self.bs_degree, cp=TopCP)
-            # uq = np.linspace(0, 1, int(self.num_reconstr_points/2))
-            # bs.set_paras(uq)
-            # knots = bs.get_knots()
-            # points1 = bs.bs(uq)
+            bs = BS_curve(self.cp_num - 1, self.bs_degree, cp=TopCP)
+            uq = np.linspace(0, 1, int(self.num_reconstr_points/2))
+            bs.set_paras(uq)
+            knots = bs.get_knots()
+            points1 = bs.bs(uq)
 
-            # bs = BS_curve(self.cp_num - 1, self.bs_degree, cp=BottomCP)
-            # uq = np.linspace(0, 1, int(self.num_reconstr_points/2))
-            # bs.set_paras(uq)
-            # knots = bs.get_knots()
-            # points2 = bs.bs(uq)
+            bs = BS_curve(self.cp_num - 1, self.bs_degree, cp=BottomCP)
+            uq = np.linspace(0, 1, int(self.num_reconstr_points/2))
+            bs.set_paras(uq)
+            knots = bs.get_knots()
+            points2 = bs.bs(uq)
 
-            # points = np.append(points1, points2)
-            # points = np.append(points.flatten(), score[index]).flatten()
+            points = np.append(points1, points2)
+            points = np.append(points.flatten(), score[index]).flatten()
 
             # Fourier
-            x, y = x_pred[score_mask], y_pred[score_mask]
-            c = x + y * 1j
-            c[:, self.fourier_degree] = c[:, self.fourier_degree] + dxy
-            c *= scale
+            # x, y = x_pred[score_mask], y_pred[score_mask]
+            # c = x + y * 1j
+            # c[:, self.fourier_degree] = c[:, self.fourier_degree] + dxy
+            # c *= scale
 
-            polygons = fourier2poly(c, self.num_reconstr_points)
-            score = score_map[score_mask].reshape(-1, 1)
-            polygons = np.hstack((polygons, score))
+            # polygons = fourier2poly(c, self.num_reconstr_points)
+            # score = score_map[score_mask].reshape(-1, 1)
+            # polygons = np.hstack((polygons, score))
 
             # polygons = np.vstack((polygons, points))
-            polygons = poly_nms(polygons.tolist(), self.nms_thr)
-            # polygons = [points.tolist()]
+            # polygons = poly_nms(polygons.tolist(), self.nms_thr)
+            polygons = [points.tolist()]
 
             boundaries = boundaries + polygons
 

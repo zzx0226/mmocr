@@ -70,13 +70,14 @@ class HybridLoss_tb(nn.Module):
                 loss_bs_x += sum(loss)
             else:
                 loss_bs_y += sum(loss)
-
+        # print("here 4")
         results = dict(loss_text=loss_tr,
                        loss_center=loss_tcl,
                        loss_reg_x=loss_reg_x,
                        loss_reg_y=loss_reg_y,
                        loss_bs_x=loss_bs_x,
-                       loss_bs_y=loss_bs_y)
+                       loss_bs_y=loss_bs_y
+                       )
 
         return results
 

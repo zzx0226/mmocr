@@ -29,6 +29,7 @@ class HybridNetTargets_tb(TextSnakeTargets):
         level_proportion_range (tuple(tuple(int))): The range of text sizes
             assigned to each level.
     """
+
     def __init__(self,
                  fourier_degree=5,
                  bs_degree=4,

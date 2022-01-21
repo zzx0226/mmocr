@@ -7,14 +7,14 @@ from numpy.linalg import norm
 
 import mmocr.utils.check_argument as check_argument
 from .textsnake_targets import TextSnakeTargets
-from geomdl import fitting
+# from geomdl import fitting
 from shapely.geometry.polygon import LinearRing
-from geomdl import BSpline
-from geomdl import knotvector
+# from geomdl import BSpline
+# from geomdl import knotvector
 
 
 @PIPELINES.register_module()
-class BSNetTargets_tb_new(TextSnakeTargets):
+class BSNetTargets_tb_icdar(TextSnakeTargets):
     """Generate the ground truth targets of FCENet: Fourier Contour Embedding
     for Arbitrary-Shaped Text Detection.
 
@@ -53,53 +53,6 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         self.cp_num = cp_num
         self.sample_size = sample_size
 
-    def Resample(self, points, ResampleNum):
-        perimeter = LinearRing(points).length
-        ResamplePoints = np.empty([0, 2], dtype=np.int32)
-        # 计算每条边应分得的点数 这里存在一个问题 int()的过程中会使得重采样的点小于ResampleNum 这里采用的策略是将缺少的点分给长的边
-        eachLengthPoints = []
-        for i, point in enumerate(points):
-            try:
-                nextPoint = points[i + 1]
-            except:
-                nextPoint = points[0]
-            eachLengthPoints.append(int(np.linalg.norm((point - nextPoint)) * ResampleNum / perimeter))
-
-        eachLengthPoints = np.array(eachLengthPoints)
-        # print(eachLengthPoints.sum())
-        if eachLengthPoints.sum() < ResampleNum:
-            lostPoints = ResampleNum - eachLengthPoints.sum()
-            index = np.arange(len(eachLengthPoints))
-            total = np.column_stack((index, eachLengthPoints))
-            total = total[np.argsort(total[:, 1])]
-
-            Temp = np.zeros_like(eachLengthPoints)
-            Temp[-lostPoints:] = 1
-            total[:, 1] += Temp
-            total = total[np.argsort(total[:, 0])]
-
-            eachLengthPoints = total[:, 1]
-        elif eachLengthPoints.sum() > ResampleNum:
-            lostPoints = eachLengthPoints.sum() - ResampleNum
-            Temp = np.zeros_like(eachLengthPoints)
-            Temp[0:lostPoints] = 1
-            eachLengthPoints += Temp
-
-        else:
-            pass
-        if eachLengthPoints.sum() != ResampleNum:
-            raise ValueError("重采样点数不符")
-        # eachLengthPoints中存放着每条边应当重采样的点的数目
-        for i, point in enumerate(points):
-            try:
-                nextPoint = points[i + 1]
-            except:
-                nextPoint = points[0]
-            sectionPoints = np.linspace(point, nextPoint, eachLengthPoints[i] + 1)[:-1]
-            ResamplePoints = np.append(ResamplePoints, sectionPoints, axis=0)
-
-        return ResamplePoints
-
     def normalize_bs_polygon(self, polygon):
         """Normalize one polygon so that its start point is at right most.
 
@@ -118,10 +71,10 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         pRing = LinearRing(polygon)
         if not pRing.is_ccw:
             polygon = np.flipud(polygon)
-        if len(polygon) != 4:
-            index = np.argsort(polygon[:, 0])[0]
-        else:
-            index = np.argsort(np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
+        # if len(polygon) != 4:
+        #     index = np.argsort(polygon[:, 0])[0]
+        # else:
+        index = np.argsort(np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
         new_polygon = np.concatenate([polygon[index:], polygon[:index]])
         return new_polygon
 
@@ -147,13 +100,6 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         for poly in text_polys:
             assert len(poly) == 1
             polygon_points = poly[0].reshape(-1, 2)
-            # if polygon_points.shape[0] >= 4:
-            #     # print("1")
-            #     pass
-            # else:
-            #     print("2")
-            if len(polygon_points) != 14:
-                polygon_points = self.Resample(polygon_points, 14)
             _, _, top_line, bot_line = self.reorder_poly_edge(polygon_points)
             resampled_top_line, resampled_bot_line = self.resample_sidelines(top_line, bot_line, self.resample_step)
             resampled_bot_line = resampled_bot_line[::-1]
@@ -179,46 +125,22 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         cv2.fillPoly(center_region_mask, center_region_boxes, 1)
         return center_region_mask
 
-    def cal_cp_coordinates(self, polygon, bs_degree):
-
+    def cal_cp_coordinates(self, polygon):
+        # SplitIndex = int(len(polygon) / 2)
+        # TopLine = polygon[:SplitIndex]
+        # BottomLine = polygon[SplitIndex:]
         # if len(TopLine) == 2:
         #     TopLine = np.linspace(TopLine[0], TopLine[1], 7)
         #     BottomLine = np.linspace(BottomLine[0], BottomLine[1], 7)
-        # elif len(TopLine) != 2 and len(TopLine) != 7:
-        if len(polygon) != 14:
-            polygon_resample = self.Resample(polygon, 14)
-            SplitIndex = int(len(polygon_resample) / 2)
-            TopLine = polygon_resample[:SplitIndex]
-            BottomLine = polygon_resample[SplitIndex:]
-        else:
-            SplitIndex = int(len(polygon) / 2)
-            TopLine = polygon[:SplitIndex]
-            BottomLine = polygon[SplitIndex:]
+        # Topcurve_org = fitting.approximate_curve(TopLine.tolist(), bs_degree).ctrlpts
+        # Downcurve_org = fitting.approximate_curve(BottomLine.tolist(), bs_degree).ctrlpts
 
-        Topcurve_org = fitting.approximate_curve(TopLine.tolist(), bs_degree).ctrlpts
-        Downcurve_org = fitting.approximate_curve(BottomLine.tolist(), bs_degree).ctrlpts
+        # Topcurve = np.array(Topcurve_org)
+        # Downcurve = np.array(Downcurve_org)
 
-        Topcurve = np.array(Topcurve_org)
-        Downcurve = np.array(Downcurve_org)
-
-        # crv = BSpline.Curve()
-        # crv.degree = self.bs_degree
-        # crv.ctrlpts = Topcurve_org
-        # crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-        # crv.sample_size = self.sample_size
-        # points_top = np.array(crv.evalpts).flatten()
-
-        # crv = BSpline.Curve()
-        # crv.degree = self.bs_degree
-        # crv.ctrlpts = Downcurve_org
-        # crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-        # crv.sample_size = self.sample_size
-        # points_down = np.array(crv.evalpts).flatten()
-
-        CtrlPoints = np.append(Topcurve, Downcurve).reshape(-1, 2)
+        # CtrlPoints = np.append(Topcurve, Downcurve).reshape(-1, 2)
         # Contour = np.append(points_top, points_down)  #.reshape(-1, 2)
-        if CtrlPoints.shape[0] != 10:
-            print("error")
+        CtrlPoints = polygon.reshape(-1, 2)
         return CtrlPoints  #, Contour
 
     def generate_cp_maps(self, img_size, text_polys):
@@ -227,9 +149,9 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         assert check_argument.is_2dlist(text_polys)
 
         h, w = img_size
-        cp_num = self.cp_num
-        x_map = np.zeros((cp_num * 2, h, w), dtype=np.float32)
-        y_map = np.zeros((cp_num * 2, h, w), dtype=np.float32)
+        # cp_num = self.cp_num
+        x_map = np.zeros((4, h, w), dtype=np.float32)
+        y_map = np.zeros((4, h, w), dtype=np.float32)
 
         # contour_t = np.zeros((self.sample_size * 2, h, w), dtype=np.float32)
         # contour_b = np.zeros((self.sample_size * 2, h, w), dtype=np.float32)
@@ -242,8 +164,8 @@ class BSNetTargets_tb_new(TextSnakeTargets):
 
             polygon = self.normalize_bs_polygon(polygon[0])
             cv2.fillPoly(mask, [polygon.astype(np.int32)], 1)
-            cp_coordinates = self.cal_cp_coordinates(polygon, self.bs_degree)  #, contour
-            for i in range(0, cp_num * 2):
+            cp_coordinates = self.cal_cp_coordinates(polygon)  #, contour
+            for i in range(0, 4):
                 x_map[i, :, :] = mask * cp_coordinates[i, 0] + \
                     (1 - mask) * x_map[i, :, :]
                 y_map[i, :, :] = mask * cp_coordinates[i, 1] + \

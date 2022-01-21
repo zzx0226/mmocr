@@ -1,3 +1,11 @@
+'''
+Description: 
+Version: 1.0
+Autor: Zhangzixu
+Date: 2021-12-21 20:18:27
+LastEditors: Zhangzixu
+LastEditTime: 2022-01-07 11:57:57
+'''
 cp_num = 5
 bs_degree = 4
 reconstr_points = 100
@@ -21,13 +29,13 @@ model = dict(type='BSNet',
                        num_outs=3,
                        relu_before_extra_convs=True,
                        act_cfg=None),
-             bbox_head=dict(type='BSHead_BBOXES',
+             bbox_head=dict(type='BSHead_tb_icdar',
                             bs_degree=bs_degree,
                             cp_num=cp_num,
                             in_channels=256,
                             scales=(8, 16, 32),
-                            loss=dict(type='BSLoss_bbox', bs_degree=bs_degree, cp_num=cp_num),
-                            postprocessor=dict(type='BSPostprocessor_bbox',
+                            loss=dict(type='BSLoss_tb_icdar', bs_degree=bs_degree, cp_num=cp_num),
+                            postprocessor=dict(type='BSPostprocessor_tb_icdar',
                                                bs_degree=bs_degree,
                                                cp_num=cp_num,
                                                num_reconstr_points=reconstr_points,

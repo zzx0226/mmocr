@@ -26,8 +26,10 @@ from .bs_head_fcos_tb import BS_FCOSHead_tb
 from .hybrid_head_tb import HybridHead_tb
 from .bs_head_tood import BS_TOODHead
 from .bs_head_tb import BSHead_tb
+from .bs_head_tb_icdar import BSHead_tb_icdar
+
 __all__ = [
     'PSEHead', 'PANHead', 'DBHead', 'FCEHead', 'TextSnakeHead', 'DRRGHead', 'HeadMixin', 'BSHead', 'BSHead_BBOXES', 'WLHead',
     'BS_FCOSHead', 'WLHead_fcos', 'BS_FCOSHead_Att', 'HybridHead', 'FCE_FCOSHead', 'BS_FCOSHead_tb', 'HybridHead_tb',
-    'BS_TOODHead', 'BSHead_tb'
+    'BS_TOODHead', 'BSHead_tb', "BSHead_tb_icdar"
 ]

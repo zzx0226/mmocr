@@ -1,5 +1,5 @@
 dataset_type = 'IcdarDataset'
-data_root = '/home/atom/Research_STD/Datasets/mmocr/icdar2015'
+data_root = '/home/atom/Research_STD/Datasets/mmocr/totaltext'
 
 train = dict(type=dataset_type, ann_file=f'{data_root}/instances_training.json', img_prefix=f'{data_root}/imgs', pipeline=None)
 

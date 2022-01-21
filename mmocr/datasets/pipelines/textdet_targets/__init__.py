@@ -28,10 +28,12 @@ from .bsnet_fcos_targets_tb import BSNetFcosTargets_tb
 from .bsnet_targets_tb5 import BSNetTargets_tb
 from .hybridnet_targets_tb_new import HybridNetTargets_tb_new
 from .bsnet_targets_tb5_new import BSNetTargets_tb_new
+from .bsnet_targets_tb5_icdar import BSNetTargets_tb_icdar
+from .bsnet_targets_icdar import BSNetTargets_icdar
 
 __all__ = [
     'BaseTextDetTargets', 'PANetTargets', 'PSENetTargets', 'DBNetTargets', 'FCENetTargets', 'TextSnakeTargets', 'DRRGTargets',
     'BSNetTargets', 'BSNetTargets_bbox', 'WLNetTargets', 'BSNetFcosTargets', 'WLNetFcosTargets', 'BSNetTargets_Out5',
     'HybridNetTargets', 'FCENetFcosTargets', 'BSNetFcosTargets_tb', 'HybridNetTargets_tb', 'BSNetFcosTargets_tb',
-    'BSNetTargets_tb', 'HybridNetTargets_tb_new', 'BSNetTargets_tb_new'
+    'BSNetTargets_tb', 'HybridNetTargets_tb_new', 'BSNetTargets_tb_new', 'BSNetTargets_tb_icdar', 'BSNetTargets_icdar'
 ]

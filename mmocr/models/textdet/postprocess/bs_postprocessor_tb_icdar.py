@@ -10,7 +10,7 @@ from geomdl import knotvector
 
 
 @POSTPROCESSOR.register_module()
-class BSPostprocessor_tb_new(BasePostprocessor):
+class BSPostprocessor_tb_icdar(BasePostprocessor):
     """Decoding predictions of FCENet to instances.
 
     Args:
@@ -69,8 +69,8 @@ class BSPostprocessor_tb_new(BasePostprocessor):
         tcl_pred = cls_pred[2:].softmax(dim=0).data.cpu().numpy()
 
         reg_pred = preds[1][0].permute(1, 2, 0).data.cpu().numpy()
-        x_pred = reg_pred[:, :, :self.cp_num * 2]
-        y_pred = reg_pred[:, :, self.cp_num * 2:]
+        x_pred = reg_pred[:, :, :4]
+        y_pred = reg_pred[:, :, 4:]
 
         score_pred = (tr_pred[1]**self.alpha) * (tcl_pred[1]**self.beta)
         tr_pred_mask = (score_pred) > self.score_thr
@@ -92,48 +92,32 @@ class BSPostprocessor_tb_new(BasePostprocessor):
             score = score_map[score_mask].flatten()
             # for i, (x, y) in enumerate(zip(xs, ys)):
             #     c = np.vstack((x, y)).T
-            #     split_index = int(len(c) / 2)
             #     c *= scale
-            #     TopCP = c[:split_index].reshape(-1, 2)
-            #     BottomCP = c[split_index:].reshape(-1, 2)
-
-            #     crv = BSpline.Curve()
-            #     crv.degree = self.bs_degree
-            #     crv.ctrlpts = TopCP.tolist()
-            #     crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-            #     points1 = np.array(crv.evalpts)
-
-            #     crv = BSpline.Curve()
-            #     crv.degree = self.bs_degree
-            #     crv.ctrlpts = BottomCP.tolist()
-            #     crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-            #     points2 = np.array(crv.evalpts)
-
-            #     points = np.append(points1, points2)
-            #     points = np.append(points.flatten(), score[i]).flatten()
+            #     points = np.append(c.flatten(), score[i]).flatten()
             #     polygons = [points.tolist()]
             #     boundaries = boundaries + polygons
+
             index = np.argmax(score)
             c = np.vstack((xs[index], ys[index])).T
-            split_index = int(len(c) / 2)
             c *= scale
-            TopCP = c[:split_index].reshape(-1, 2)
-            BottomCP = c[split_index:].reshape(-1, 2)
+            points = np.append(c.flatten(), score[index]).flatten()
+            # TopCP = c[:split_index].reshape(-1, 2)
+            # BottomCP = c[split_index:].reshape(-1, 2)
 
-            crv = BSpline.Curve()
-            crv.degree = self.bs_degree
-            crv.ctrlpts = TopCP.tolist()
-            crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-            points1 = np.array(crv.evalpts)
+            # crv = BSpline.Curve()
+            # crv.degree = self.bs_degree
+            # crv.ctrlpts = TopCP.tolist()
+            # crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
+            # points1 = np.array(crv.evalpts)
 
-            crv = BSpline.Curve()
-            crv.degree = self.bs_degree
-            crv.ctrlpts = BottomCP.tolist()
-            crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-            points2 = np.array(crv.evalpts)
+            # crv = BSpline.Curve()
+            # crv.degree = self.bs_degree
+            # crv.ctrlpts = BottomCP.tolist()
+            # crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
+            # points2 = np.array(crv.evalpts)
 
-            points = np.append(points1, points2)
-            points = np.append(points.flatten(), score[index]).flatten()
+            # points = np.append(points1, points2)
+            # points = np.append(points.flatten(), score[index]).flatten()
             polygons = [points.tolist()]
             boundaries = boundaries + polygons
 

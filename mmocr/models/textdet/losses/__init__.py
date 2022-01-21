@@ -22,8 +22,11 @@ from .hybrid_loss import HybridLoss
 from .hybrid_loss_tb import HybridLoss_tb
 from .bs_loss_tb import BSLoss_tb
 from .bs_loss_tb_new import BSLoss_tb_new
+from .chamfer_distance import ChamferDistance, chamfer_distance
+from .bs_loss_tb_icdar import BSLoss_tb_icdar
 
 __all__ = [
     'PANLoss', 'PSELoss', 'DBLoss', 'TextSnakeLoss', 'FCELoss', 'DRRGLoss', 'BSLoss', 'BSLoss_bbox', 'WLLoss', 'BSLoss_fcos',
-    'BSLoss_Out5', 'HybridLoss', 'HybridLoss_tb', 'BSLoss_tb', 'BSLoss_tb_new'
+    'BSLoss_Out5', 'HybridLoss', 'HybridLoss_tb', 'BSLoss_tb', 'BSLoss_tb_new', 'ChamferDistance', 'chamfer_distance',
+    'BSLoss_tb_icdar'
 ]

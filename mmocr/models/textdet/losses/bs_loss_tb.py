@@ -89,7 +89,7 @@ class BSLoss_tb(nn.Module):
 
         gt = gt.permute(0, 2, 3, 1).contiguous()
 
-        k = self.cp_num*2
+        k = self.cp_num * 2
         tr_pred = cls_pred[:, :, :, :2].view(-1, 2)
         tcl_pred = cls_pred[:, :, :, 2:].view(-1, 2)
         x_pred = reg_pred[:, :, :, 0:k].view(-1, k)
@@ -110,18 +110,15 @@ class BSLoss_tb(nn.Module):
         loss_tcl = torch.tensor(0.).float().to(device)
         tr_neg_mask = 1 - tr_train_mask
         if tr_train_mask.sum().item() > 0:
-            loss_tcl_pos = F.cross_entropy(
-                tcl_pred[tr_train_mask.bool()], tcl_mask[tr_train_mask.bool()].long())
-            loss_tcl_neg = F.cross_entropy(
-                tcl_pred[tr_neg_mask.bool()], tcl_mask[tr_neg_mask.bool()].long())
+            loss_tcl_pos = F.cross_entropy(tcl_pred[tr_train_mask.bool()], tcl_mask[tr_train_mask.bool()].long())
+            loss_tcl_neg = F.cross_entropy(tcl_pred[tr_neg_mask.bool()], tcl_mask[tr_neg_mask.bool()].long())
             loss_tcl = loss_tcl_pos + 0.5 * loss_tcl_neg
 
         # regression loss
         loss_reg_x = torch.tensor(0.).float().to(device)
         loss_reg_y = torch.tensor(0.).float().to(device)
         if tr_train_mask.sum().item() > 0:
-            weight = (tr_mask[tr_train_mask.bool()].float() +
-                      tcl_mask[tr_train_mask.bool()].float()) / 2  # 10
+            weight = (tr_mask[tr_train_mask.bool()].float() + tcl_mask[tr_train_mask.bool()].float()) / 2  # 10
             weight = weight.contiguous().view(-1, 1)
 
             loss_reg_x = torch.mean(
@@ -141,16 +138,12 @@ class BSLoss_tb(nn.Module):
         n_pos = pos.float().sum()
 
         if n_pos.item() > 0:
-            loss_pos = F.cross_entropy(
-                predict[pos], target[pos], reduction='sum')
-            loss_neg = F.cross_entropy(
-                predict[neg], target[neg], reduction='none')
-            n_neg = min(int(neg.float().sum().item()),
-                        int(self.ohem_ratio * n_pos.float()))
+            loss_pos = F.cross_entropy(predict[pos], target[pos], reduction='sum')
+            loss_neg = F.cross_entropy(predict[neg], target[neg], reduction='none')
+            n_neg = min(int(neg.float().sum().item()), int(self.ohem_ratio * n_pos.float()))
         else:
             loss_pos = torch.tensor(0.).to(device)
-            loss_neg = F.cross_entropy(
-                predict[neg], target[neg], reduction='none')
+            loss_neg = F.cross_entropy(predict[neg], target[neg], reduction='none')
             n_neg = 100
         if len(loss_neg) > n_neg:
             loss_neg, _ = torch.topk(loss_neg, n_neg)

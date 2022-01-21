@@ -11,43 +11,27 @@ from .head_mixin import HeadMixin
 
 
 @HEADS.register_module()
-class BSHead_BBOXES(HeadMixin, BaseModule):
-    """The class for implementing FCENet head.
+class BSHead_tb_icdar(HeadMixin, BaseModule):
 
-    FCENet(CVPR2021): `Fourier Contour Embedding for Arbitrary-shaped Text
-    Detection <https://arxiv.org/abs/2104.10442>`_
-
-    Args:
-        in_channels (int): The number of input channels.
-        scales (list[int]) : The scale of each layer.
-        fourier_degree (int) : The maximum Fourier transform degree k.
-        nms_thr (float) : The threshold of nms.
-        loss (dict): Config of loss for FCENet.
-        postprocessor (dict): Config of postprocessor for FCENet.
-    """
-
-    def __init__(
-            self,
-            bs_degree,
-            cp_num,
-            in_channels,
-            scales,
-            nms_thr=0.1,
-            loss=dict(type='BSLoss', num_sample=50),
-            postprocessor=dict(
-                type='BSPostprocessor',
-                bs_degree=4,
-                cp_num=8,
-                # text_repr_type='poly',
-                num_reconstr_points=50,
-                alpha=1.0,
-                beta=2.0,
-                score_thr=0.3),
-            train_cfg=None,
-            test_cfg=None,
-            init_cfg=dict(type='Normal', mean=0, std=0.01, override=[dict(name='out_conv_cls'),
-                                                                     dict(name='out_conv_reg')]),
-            **kwargs):
+    def __init__(self,
+                 bs_degree,
+                 cp_num,
+                 in_channels,
+                 scales,
+                 nms_thr=0.1,
+                 loss=dict(type='BSLoss_tb_icdar', bs_degree=4, cp_num=5),
+                 postprocessor=dict(type='BSPostprocessor_tb_icdar',
+                                    bs_degree=4,
+                                    cp_num=5,
+                                    num_reconstr_points=50,
+                                    alpha=1.0,
+                                    beta=2.0,
+                                    score_thr=0.3),
+                 train_cfg=None,
+                 test_cfg=None,
+                 init_cfg=dict(type='Normal', mean=0, std=0.01, override=[dict(name='out_conv_cls'),
+                                                                          dict(name='out_conv_reg')]),
+                 **kwargs):
         old_keys = ['text_repr_type', 'decoding_type', 'num_reconstr_points', 'alpha', 'beta', 'score_thr']
         for key in old_keys:
             if kwargs.get(key, None):
@@ -69,6 +53,7 @@ class BSHead_BBOXES(HeadMixin, BaseModule):
         loss['cp_num'] = cp_num
 
         postprocessor['bs_degree'] = bs_degree
+        postprocessor['cp_num'] = cp_num
         postprocessor['nms_thr'] = nms_thr
         HeadMixin.__init__(self, loss, postprocessor)
 
@@ -79,17 +64,16 @@ class BSHead_BBOXES(HeadMixin, BaseModule):
         self.scales = scales
 
         self.bs_degree = bs_degree
-        self.cp_num = cp_num
+        # self.cp_num = cp_num
 
         self.nms_thr = nms_thr
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
         self.out_channels_cls = 4
-        self.out_channels_reg = cp_num * 4  #+ 4  #后四位为bbox
+        self.out_channels_reg = 8
 
         self.out_conv_cls = nn.Conv2d(self.in_channels, self.out_channels_cls, kernel_size=3, stride=1, padding=1)
         self.out_conv_reg = nn.Conv2d(self.in_channels, self.out_channels_reg, kernel_size=3, stride=1, padding=1)
-        # self.out_conv_bbox = nn.Conv2d(self.in_channels, 4, kernel_size=3, stride=1, padding=1)
 
     def forward(self, feats):
         """
@@ -119,7 +103,8 @@ class BSHead_BBOXES(HeadMixin, BaseModule):
         boundaries = []
         for idx, score_map in enumerate(score_maps):
             scale = self.scales[idx]
-            boundaries = boundaries + self._get_boundary_single(score_map, scale)
+            boundaries = boundaries + \
+                self._get_boundary_single(score_map, scale)
 
         # nms
         boundaries = poly_nms(boundaries, self.nms_thr)
@@ -132,6 +117,6 @@ class BSHead_BBOXES(HeadMixin, BaseModule):
 
     def _get_boundary_single(self, score_map, scale):
         assert len(score_map) == 2
-        # assert score_map[1].shape[1] == self.cp_num * 2
+        assert score_map[1].shape[1] == 8
 
         return self.postprocessor(score_map, scale)

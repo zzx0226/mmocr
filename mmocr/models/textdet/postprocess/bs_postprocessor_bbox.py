@@ -10,7 +10,7 @@ from geomdl import knotvector
 
 
 @POSTPROCESSOR.register_module()
-class BSPostprocessor_tb_new(BasePostprocessor):
+class BSPostprocessor_bbox(BasePostprocessor):
     """Decoding predictions of FCENet to instances.
 
     Args:
@@ -137,7 +137,7 @@ class BSPostprocessor_tb_new(BasePostprocessor):
             polygons = [points.tolist()]
             boundaries = boundaries + polygons
 
-        # boundaries = poly_nms(boundaries, self.nms_thr)
+        boundaries = poly_nms(boundaries, self.nms_thr)
 
         # if self.text_repr_type == 'quad':
         #     new_boundaries = []

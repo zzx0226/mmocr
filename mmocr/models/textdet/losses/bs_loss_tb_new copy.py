@@ -2,23 +2,36 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-from mmdet.core import multi_apply, reduce_mean
+from mmdet.core import multi_apply
 from torch import nn
+
 from mmocr.models.builder import LOSSES
-from mmdet.models.builder import build_loss
+from geomdl import BSpline
+from geomdl import knotvector
+from chamfer_distance import ChamferDistance
+
+chamfer_dist = ChamferDistance()
 
 
 @LOSSES.register_module()
-class BSLoss_bbox(nn.Module):
+class BSLoss_tb_new(nn.Module):
+    """The class for implementing FCENet loss.
+
+    FCENet(CVPR2021): `Fourier Contour Embedding for Arbitrary-shaped Text
+    Detection <https://arxiv.org/abs/2104.10442>`_
+
+    Args:
+        fourier_degree (int) : The maximum Fourier transform degree k.
+        num_sample (int) : The sampling points number of regression
+            loss. If it is too small, fcenet tends to be overfitting.
+        ohem_ratio (float): the negative/positive ratio in OHEM.
+    """
 
     def __init__(self, bs_degree, cp_num, ohem_ratio=3.):
         super().__init__()
         self.bs_degree = bs_degree
         self.cp_num = cp_num
         self.ohem_ratio = ohem_ratio
-        loss_bbox = dict(type='CIoULoss', loss_weight=1.0)
-        # loss_bbox = dict(type='IoULoss', loss_weight=1.0)
-        self.loss_bbox = build_loss(loss_bbox)
 
     def forward(self, preds, _, p3_maps, p4_maps, p5_maps):
         """Compute FCENet loss.
@@ -55,7 +68,8 @@ class BSLoss_bbox(nn.Module):
         loss_tcl = torch.tensor(0., device=device).float()
         loss_reg_x = torch.tensor(0., device=device).float()
         loss_reg_y = torch.tensor(0., device=device).float()
-        loss_bbox = torch.tensor(0., device=device).float()
+        loss_top = torch.tensor(0., device=device).float()
+        loss_bottom = torch.tensor(0., device=device).float()
 
         for idx, loss in enumerate(losses):
             if idx == 0:
@@ -66,14 +80,19 @@ class BSLoss_bbox(nn.Module):
                 loss_reg_x += sum(loss)
             elif idx == 3:
                 loss_reg_y += sum(loss)
+            elif idx == 4:
+                loss_top += sum(loss)
             else:
-                loss_bbox += sum(loss)
+                loss_bottom += sum(loss)
 
-        results = dict(loss_text=loss_tr,
-                       loss_center=loss_tcl,
-                       loss_reg_x=loss_reg_x,
-                       loss_reg_y=loss_reg_y,
-                       loss_bbox=loss_bbox)
+        results = dict(
+            loss_text=loss_tr,
+            loss_center=loss_tcl,
+            loss_reg_x=loss_reg_x,
+            loss_reg_y=loss_reg_y,
+            loss_top=loss_top,
+            loss_bottom=loss_bottom,
+        )
 
         return results
 
@@ -95,11 +114,20 @@ class BSLoss_bbox(nn.Module):
         x_map = gt[:, :, :, 3:3 + k].view(-1, k)
         y_map = gt[:, :, :, 3 + k:3 + k * 2].view(-1, k)
 
-        # bboxes = gt[:, :, :, 3 + k * 2:].view(-1, 4)
+        # TopCurve_gt = gt[:, :, :, 3 + k * 2:3 + k * 2 + 40].reshape(-1, 20, 2)
+        # BottomCurve_gt = gt[:, :, :, 3 + k * 2 + 40:3 + k * 2 + 40 * 2].reshape(-1, 20, 2)
+        # TopCurve_gt = torch.cat((TopCurve_gt, torch.zeros((TopCurve_gt.shape[0], 20, 1)).cuda()), dim=2)
+        # BottomCurve_gt = torch.cat((BottomCurve_gt, torch.zeros((BottomCurve_gt.shape[0], 20, 1)).cuda()), dim=2)
+        x_map_temp = torch.cat((x_map.reshape(-1, int(k / 2), 2), torch.zeros((x_map.shape[0], int(k / 2), 1)).cuda()), dim=2)
+        y_map_temp = torch.cat((y_map.reshape(-1, int(k / 2), 2), torch.zeros((y_map.shape[0], int(k / 2), 1)).cuda()), dim=2)
 
-        device = x_map.device
+        x_pred_temp = torch.cat((x_pred.reshape(-1, int(k / 2), 2), torch.zeros((x_pred.shape[0], int(k / 2), 1)).cuda()),
+                                dim=2)
+        y_pred_temp = torch.cat((y_pred.reshape(-1, int(k / 2), 2), torch.zeros((y_pred.shape[0], int(k / 2), 1)).cuda()),
+                                dim=2)
+
         tr_train_mask = train_mask * tr_mask
-
+        device = x_map.device
         # tr loss
         loss_tr = self.ohem(tr_pred, tr_mask.long(), train_mask.long())
 
@@ -107,7 +135,8 @@ class BSLoss_bbox(nn.Module):
         loss_tcl = torch.tensor(0.).float().to(device)
         loss_reg_x = torch.tensor(0.).float().to(device)
         loss_reg_y = torch.tensor(0.).float().to(device)
-        loss_bbox = torch.tensor(0.).float().to(device)
+        top_loss = torch.tensor(0.).float().to(device)
+        bottom_loss = torch.tensor(0.).float().to(device)
 
         tr_neg_mask = 1 - tr_train_mask
         if tr_train_mask.sum().item() > 0:
@@ -116,25 +145,26 @@ class BSLoss_bbox(nn.Module):
             loss_tcl = loss_tcl_pos + 0.5 * loss_tcl_neg
 
         # regression loss
-        if tr_train_mask.sum().item() > 0:
-            t_pred = torch.min(y_pred[tr_train_mask.bool()][:, :5], dim=1).values
-            b_pred = torch.max(y_pred[tr_train_mask.bool()][:, 5:], dim=1).values
-            r_pred = torch.max(x_pred[tr_train_mask.bool()], dim=1).values
-            l_pred = torch.min(x_pred[tr_train_mask.bool()], dim=1).values
-            # bbox_pred = torch.cat((t_pred, l_pred, b_pred, r_pred), dim=0).reshape(-1, 4)
-            bbox_pred = torch.cat((l_pred, t_pred, r_pred, b_pred), dim=0).reshape(-1, 4)
 
-            t_gt = torch.min(y_map[tr_train_mask.bool()][:, :5], dim=1).values
-            b_gt = torch.max(y_map[tr_train_mask.bool()][:, 5:], dim=1).values
-            r_gt = torch.max(x_map[tr_train_mask.bool()], dim=1).values
-            l_gt = torch.min(x_map[tr_train_mask.bool()], dim=1).values
-            # bbox_gt = torch.cat((t_gt, l_gt, b_gt, r_gt), dim=0).reshape(-1, 4)
-            bbox_gt = torch.cat((l_gt, t_gt, r_gt, b_gt), dim=0).reshape(-1, 4)
-            # centerness_targets = self.centerness_target(bbox_gt)
-            # centerness weighted iou loss
-            # centerness_denorm = max(reduce_mean(centerness_targets.sum().detach()), 1e-6)
-            # loss_bbox = self.loss_bbox(bbox_pred, bbox_gt, weight=centerness_targets, avg_factor=centerness_denorm)
-            loss_bbox = self.loss_bbox(bbox_pred, bbox_gt)
+        # TopCPs = torch.cat((x_map[:, 0], y_map[:, 0], x_map[:, 1], y_map[:, 1], x_map[:, 2], y_map[:, 2], x_map[:, 3],
+        #                     y_map[:, 3], x_map[:, 4], y_map[:, 4])).reshape(10, -1).T.cpu().detach().numpy()
+        # BottomCPs = torch.cat((x_map[:, 5], y_map[:, 5], x_map[:, 6], y_map[:, 6], x_map[:, 7], y_map[:, 7], x_map[:, 8],
+        #                        y_map[:, 8], x_map[:, 9], y_map[:, 9])).reshape(10, -1).T.cpu().detach().numpy()
+
+        # TopCurve = multi_apply(self.cal_contour, list(TopCPs))
+        # BottomCurve = multi_apply(self.cal_contour, list(BottomCPs))
+        # TopCurve = torch.tensor(TopCurve).cuda().permute(1, 0).contiguous().reshape(-1, 20, 2)
+        # BottomCurve = torch.tensor(BottomCurve).cuda().permute(1, 0).contiguous().reshape(-1, 20, 2)
+
+        # TopCurve = torch.cat((TopCurve, torch.zeros((TopCurve.shape[0], 20, 1)).cuda()), dim=2)
+        # BottomCurve = torch.cat((BottomCurve, torch.zeros((BottomCurve.shape[0], 20, 1)).cuda()), dim=2)
+
+        # dist1, dist2, idx1, idx2 = chamfer_dist(TopCurve.float(), TopCurve_gt.float())
+        # top_loss = (torch.mean(dist1)) + (torch.mean(dist2))
+        # dist1, dist2, idx1, idx2 = chamfer_dist(BottomCurve.float(), BottomCurve_gt.float())
+        # bottom_loss = (torch.mean(dist1)) + (torch.mean(dist2))
+
+        if tr_train_mask.sum().item() > 0:
             weight = (tr_mask[tr_train_mask.bool()].float() + tcl_mask[tr_train_mask.bool()].float()) / 2  # 10
             weight = weight.contiguous().view(-1, 1)
 
@@ -145,8 +175,32 @@ class BSLoss_bbox(nn.Module):
                 weight *
                 F.smooth_l1_loss(y_map[tr_train_mask.bool()], y_pred[tr_train_mask.bool()], reduction='none'))  # / scale
 
-        return loss_tr, loss_tcl, loss_reg_x, loss_reg_y, loss_bbox
+            dist1, dist2, idx1, idx2 = chamfer_dist(x_map_temp.float(), x_pred_temp.float())
+            top_loss = (torch.mean(dist1)) + (torch.mean(dist2))
+            # top_loss = torch.mean(F.smooth_l1_loss(dist1, dist2, reduction='none'))
 
+            dist1, dist2, idx1, idx2 = chamfer_dist(y_map_temp.float(), y_pred_temp.float())
+            bottom_loss = (torch.mean(dist1)) + (torch.mean(dist2))
+            # bottom_loss = torch.mean(F.smooth_l1_loss(dist1, dist2, reduction='none'))
+
+            loss_top_ctrl = torch.sum(top_loss)
+            loss_bottom_ctrl = torch.sum(bottom_loss)
+
+        return loss_tr, loss_tcl, loss_reg_x, loss_reg_y, loss_top_ctrl, loss_bottom_ctrl
+
+    def cal_contour(self, ContrlPoint):
+        if (ContrlPoint == 0).all():
+            return np.zeros(40)
+        ContrlPoint = ContrlPoint.reshape(-1, 2)
+        crv = BSpline.Curve()
+        crv.degree = self.bs_degree
+        crv.ctrlpts = ContrlPoint.tolist()
+        crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
+        crv.sample_size = 20
+        points = np.array(crv.evalpts).flatten()
+        return points
+
+    #     pass
     def ohem(self, predict, target, train_mask):
         device = train_mask.device
         pos = (target * train_mask).bool()
@@ -166,23 +220,3 @@ class BSLoss_bbox(nn.Module):
             loss_neg, _ = torch.topk(loss_neg, n_neg)
 
         return (loss_pos + loss_neg.sum()) / (n_pos + n_neg).float()
-
-    def centerness_target(self, pos_bbox_targets):
-        """Compute centerness targets.
-
-        Args:
-            pos_bbox_targets (Tensor): BBox targets of positive bboxes in shape
-                (num_pos, 4)
-
-        Returns:
-            Tensor: Centerness target.
-        """
-        # only calculate pos centerness targets, otherwise there may be nan
-        left_right = pos_bbox_targets[:, [0, 2]]
-        top_bottom = pos_bbox_targets[:, [1, 3]]
-        if len(left_right) == 0:
-            centerness_targets = left_right[..., 0]
-        else:
-            centerness_targets = (left_right.min(dim=-1)[0] / left_right.max(dim=-1)[0]) * (top_bottom.min(dim=-1)[0] /
-                                                                                            top_bottom.max(dim=-1)[0])
-        return torch.sqrt(centerness_targets)
