@@ -11,5 +11,5 @@ LastEditTime: 2022-01-07 12:06:19
 optimizer = dict(type='Adam', lr=1e-4)
 optimizer_config = dict(grad_clip=None)
 # learning policy
-lr_config = dict(policy='step', step=[400, 900, 1300])
-total_epochs = 1500
+lr_config = dict(policy='step', step=[400, 900, 950])
+total_epochs = 1000

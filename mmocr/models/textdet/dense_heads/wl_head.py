@@ -12,17 +12,18 @@ from .head_mixin import HeadMixin
 
 @HEADS.register_module()
 class WLHead(HeadMixin, BaseModule):
+
     def __init__(
             self,
             in_channels,
             scales,
             nms_thr=0.1,
-            loss=dict(type='WLLoss', num_sample=50),
+            loss=dict(type='WLLoss', num_sample=100),
             postprocessor=dict(
                 type='WLPostprocessor',
                 # text_repr_type='poly',
-                wavelet_type='haar',
-                num_reconstr_points=50,
+                wavelet_type='sym5',
+                num_reconstr_points=100,
                 alpha=1.0,
                 beta=2.0,
                 score_thr=0.3),
@@ -48,9 +49,9 @@ class WLHead(HeadMixin, BaseModule):
                 'https://github.com/open-mmlab/mmocr/pull/640'
                 ' for details.', UserWarning)
         BaseModule.__init__(self, init_cfg=init_cfg)
-        loss['wavelet_type'] = 'haar'
+        loss['wavelet_type'] = 'sym5'
 
-        postprocessor['wavelet_type'] = 'haar'
+        postprocessor['wavelet_type'] = 'sym5'
         postprocessor['nms_thr'] = nms_thr
         HeadMixin.__init__(self, loss, postprocessor)
 
@@ -64,7 +65,7 @@ class WLHead(HeadMixin, BaseModule):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
         self.out_channels_cls = 4
-        self.out_channels_reg = 28
+        self.out_channels_reg = 42
 
         self.out_conv_cls = nn.Conv2d(self.in_channels, self.out_channels_cls, kernel_size=3, stride=1, padding=1)
         self.out_conv_reg = nn.Conv2d(self.in_channels, self.out_channels_reg, kernel_size=3, stride=1, padding=1)
@@ -110,6 +111,6 @@ class WLHead(HeadMixin, BaseModule):
 
     def _get_boundary_single(self, score_map, scale):
         assert len(score_map) == 2
-        assert score_map[1].shape[1] == 28
+        assert score_map[1].shape[1] == 42
 
         return self.postprocessor(score_map, scale)

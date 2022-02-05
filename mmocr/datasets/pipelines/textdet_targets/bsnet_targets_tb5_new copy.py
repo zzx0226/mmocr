@@ -115,13 +115,15 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         #     np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
         # new_polygon = np.concatenate([polygon[index:], polygon[:index]])
         # return new_polygon
-
         pRing = LinearRing(polygon)
         if not pRing.is_ccw:
             polygon = np.flipud(polygon)
-        index = np.argsort(np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
+        if len(polygon) != 4:
+            index = np.argsort(polygon[:, 0])[0]
+        else:
+            index = np.argsort(np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
         new_polygon = np.concatenate([polygon[index:], polygon[:index]])
-        return polygon
+        return new_polygon
 
     def generate_center_region_mask(self, img_size, text_polys):
         """Generate text center region mask.
@@ -151,7 +153,6 @@ class BSNetTargets_tb_new(TextSnakeTargets):
             # else:
             #     print("2")
             if len(polygon_points) != 14:
-                print("error")
                 polygon_points = self.Resample(polygon_points, 14)
             _, _, top_line, bot_line = self.reorder_poly_edge(polygon_points)
             resampled_top_line, resampled_bot_line = self.resample_sidelines(top_line, bot_line, self.resample_step)
@@ -184,15 +185,15 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         #     TopLine = np.linspace(TopLine[0], TopLine[1], 7)
         #     BottomLine = np.linspace(BottomLine[0], BottomLine[1], 7)
         # elif len(TopLine) != 2 and len(TopLine) != 7:
-        # if len(polygon) != 14:
-        #     polygon_resample = self.Resample(polygon, 14)
-        #     SplitIndex = int(len(polygon_resample) / 2)
-        #     TopLine = polygon_resample[:SplitIndex]
-        #     BottomLine = polygon_resample[SplitIndex:]
-        # else:
-        SplitIndex = int(len(polygon) / 2)
-        TopLine = polygon[:SplitIndex]
-        BottomLine = polygon[SplitIndex:]
+        if len(polygon) != 14:
+            polygon_resample = self.Resample(polygon, 14)
+            SplitIndex = int(len(polygon_resample) / 2)
+            TopLine = polygon_resample[:SplitIndex]
+            BottomLine = polygon_resample[SplitIndex:]
+        else:
+            SplitIndex = int(len(polygon) / 2)
+            TopLine = polygon[:SplitIndex]
+            BottomLine = polygon[SplitIndex:]
 
         Topcurve_org = fitting.approximate_curve(TopLine.tolist(), bs_degree).ctrlpts
         Downcurve_org = fitting.approximate_curve(BottomLine.tolist(), bs_degree).ctrlpts
@@ -216,20 +217,9 @@ class BSNetTargets_tb_new(TextSnakeTargets):
 
         CtrlPoints = np.append(Topcurve, Downcurve).reshape(-1, 2)
         # Contour = np.append(points_top, points_down)  #.reshape(-1, 2)
-        assert CtrlPoints.shape[0] == 10
+        if CtrlPoints.shape[0] != 10:
+            print("error")
         return CtrlPoints  #, Contour
-
-    def Resample_icdar(self, points):
-        ResamplePoints = np.empty([0, 2])
-        for i, point in enumerate(points):
-            try:
-                nextPoint = points[i + 1]
-            except:
-                nextPoint = points[0]
-            if i == 0 or i == 2:
-                sectionPoints = np.linspace(point, nextPoint, 8)[:-1]
-                ResamplePoints = np.append(ResamplePoints, sectionPoints, axis=0)
-        return ResamplePoints
 
     def generate_cp_maps(self, img_size, text_polys):
 
@@ -250,11 +240,9 @@ class BSNetTargets_tb_new(TextSnakeTargets):
             mask = np.zeros((h, w), dtype=np.uint8)
             polygon = np.array(text_instance).reshape((1, -1, 2))
 
-            # cv2.fillPoly(mask, [polygon[0].astype(np.int32)], 1)
-            # cp_coordinates = self.cal_cp_coordinates(polygon[0], self.bs_degree)  #, contour
-            # polygon = self.normalize_bs_polygon(polygon[0])
-            cv2.fillPoly(mask, [polygon[0].astype(np.int32)], 1)
-            cp_coordinates = self.cal_cp_coordinates(polygon[0], self.bs_degree)  #, contour
+            polygon = self.normalize_bs_polygon(polygon[0])
+            cv2.fillPoly(mask, [polygon.astype(np.int32)], 1)
+            cp_coordinates = self.cal_cp_coordinates(polygon, self.bs_degree)  #, contour
             for i in range(0, cp_num * 2):
                 x_map[i, :, :] = mask * cp_coordinates[i, 0] + \
                     (1 - mask) * x_map[i, :, :]
@@ -292,13 +280,7 @@ class BSNetTargets_tb_new(TextSnakeTargets):
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    polygon = self.normalize_bs_polygon(np.array(poly[0]).reshape(-1, 2))
-                    if len(poly[0]) != 14:
-
-                        polygon_resample = self.Resample_icdar(polygon)
-                        lv_text_polys[ind].append([polygon_resample.flatten() / lv_size_divs[ind]])
-                    else:
-                        lv_text_polys[ind].append([poly[0] / lv_size_divs[ind]])
+                    lv_text_polys[ind].append([poly[0] / lv_size_divs[ind]])
 
         for ignore_poly in ignore_polys:
             assert len(ignore_poly) == 1
@@ -309,13 +291,7 @@ class BSNetTargets_tb_new(TextSnakeTargets):
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    polygon = self.normalize_bs_polygon(np.array(ignore_poly[0]).reshape(-1, 2))
-                    if len(ignore_poly[0]) != 14:
-                        # polygon_resample = self.Resample(np.array(ignore_poly[0]).reshape(-1, 2), 14)
-                        polygon_resample = self.Resample_icdar(polygon)
-                        lv_ignore_polys[ind].append([polygon_resample.flatten() / lv_size_divs[ind]])
-                    else:
-                        lv_ignore_polys[ind].append([ignore_poly[0] / lv_size_divs[ind]])
+                    lv_ignore_polys[ind].append([ignore_poly[0] / lv_size_divs[ind]])
 
         for ind, size_divisor in enumerate(lv_size_divs):
             current_level_maps = []

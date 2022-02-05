@@ -3,12 +3,10 @@
 from mmocr.utils import revert_sync_batchnorm
 from mmocr.models import build_detector
 from mmocr.datasets import build_dataloader, build_dataset
-from mmocr.apis.utils import (
-    disable_text_recog_aug_test, replace_image_to_tensor)
+from mmocr.apis.utils import (disable_text_recog_aug_test, replace_image_to_tensor)
 from mmdet.core import encode_mask_results
 from mmdet.apis import multi_gpu_test
-from mmcv.runner import (get_dist_info, init_dist,
-                         load_checkpoint, wrap_fp16_model)
+from mmcv.runner import (get_dist_info, init_dist, load_checkpoint, wrap_fp16_model)
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 from mmcv.image import tensor2imgs
 from mmcv.cnn import fuse_conv_bn
@@ -20,12 +18,11 @@ import os.path as osp
 import argparse
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description='MMOCR test (and eval) a model.')
+    parser = argparse.ArgumentParser(description='MMOCR test (and eval) a model.')
     parser.add_argument('config', help='Test config file path.')
     parser.add_argument('checkpoint', help='Checkpoint file.')
     parser.add_argument('--out', help='Output result file in pickle format.')
@@ -45,12 +42,9 @@ def parse_args():
                         '"bbox", "seg", "proposal" for COCO, and "mAP", "recall" for'
                         'PASCAL VOC.')
     parser.add_argument('--show', action='store_true', help='Show results.')
-    parser.add_argument(
-        '--show-dir', help='Directory where the output images will be saved.')
-    parser.add_argument('--show-score-thr', type=float,
-                        default=0.3, help='Score threshold (default: 0.3).')
-    parser.add_argument('--gpu-collect', action='store_true',
-                        help='Whether to use gpu to collect results.')
+    parser.add_argument('--show-dir', help='Directory where the output images will be saved.')
+    parser.add_argument('--show-score-thr', type=float, default=0.3, help='Score threshold (default: 0.3).')
+    parser.add_argument('--gpu-collect', action='store_true', help='Whether to use gpu to collect results.')
     parser.add_argument('--tmpdir',
                         help='The tmp directory used for collecting results from multiple '
                         'workers, available when gpu-collect is not specified.')
@@ -106,8 +100,8 @@ def single_gpu_test(model, data_loader, show=False, out_dir=None, is_kie=False, 
             if is_kie:
                 img_tensor = data['img'].data[0]
                 if img_tensor.shape[0] != 1:
-                    raise KeyError(
-                        'Visualizing KIE outputs in batches is' 'currently not supported.')
+                    raise KeyError('Visualizing KIE outputs in batches is'
+                                   'currently not supported.')
                 gt_bboxes = data['gt_bboxes'].data[0]
                 img_metas = data['img_metas'].data[0]
                 imgs = tensor2imgs(img_tensor, **img_metas[0]['img_norm_cfg'])
@@ -115,13 +109,11 @@ def single_gpu_test(model, data_loader, show=False, out_dir=None, is_kie=False, 
                     h, w, _ = img_metas[i]['img_shape']
                     img_show = img[:h, :w, :]
                     if out_dir:
-                        out_file = osp.join(
-                            out_dir, img_metas[i]['ori_filename'])
+                        out_file = osp.join(out_dir, img_metas[i]['ori_filename'])
                     else:
                         out_file = None
 
-                    model.module.show_result(
-                        img_show, result[i], gt_bboxes[i], show=show, out_file=out_file)
+                    model.module.show_result(img_show, result[i], gt_bboxes[i], show=show, out_file=out_file)
             else:
                 if batch_size == 1 and isinstance(data['img'][0], torch.Tensor):
                     img_tensor = data['img'][0]
@@ -143,13 +135,11 @@ def single_gpu_test(model, data_loader, show=False, out_dir=None, is_kie=False, 
                     else:
                         out_file = None
 
-                    model.module.show_result(
-                        img_show, result[i], show=show, out_file=out_file, score_thr=show_score_thr)
+                    model.module.show_result(img_show, result[i], show=show, out_file=out_file, score_thr=show_score_thr)
 
         # encode mask results
         if isinstance(result[0], tuple):
-            result = [(bbox_results, encode_mask_results(mask_results))
-                      for bbox_results, mask_results in result]
+            result = [(bbox_results, encode_mask_results(mask_results)) for bbox_results, mask_results in result]
         results.extend(result)
 
         for _ in range(batch_size):
@@ -194,8 +184,7 @@ def main():
                 cfg.model.neck.rfp_backbone.pretrained = None
 
     # in case the test dataset is concatenated
-    samples_per_gpu = (cfg.data.get('test_dataloader', {})).get(
-        'samples_per_gpu', cfg.data.get('samples_per_gpu', 1))
+    samples_per_gpu = (cfg.data.get('test_dataloader', {})).get('samples_per_gpu', cfg.data.get('samples_per_gpu', 1))
     if samples_per_gpu > 1:
         cfg = disable_text_recog_aug_test(cfg)
         cfg = replace_image_to_tensor(cfg)
@@ -213,16 +202,16 @@ def main():
     loader_cfg = {
         **dict(seed=cfg.get('seed'), drop_last=False, dist=distributed),
         **({} if torch.__version__ != 'parrots' else dict(
-            prefetch_num=2,
-            pin_memory=False,
-        )),
+               prefetch_num=2,
+               pin_memory=False,
+           )),
         **dict((k, cfg.data[k]) for k in [
-            'workers_per_gpu',
-            'seed',
-            'prefetch_num',
-            'pin_memory',
-            'persistent_workers',
-        ] if k in cfg.data)
+                   'workers_per_gpu',
+                   'seed',
+                   'prefetch_num',
+                   'pin_memory',
+                   'persistent_workers',
+               ] if k in cfg.data)
     }
     test_loader_cfg = {
         **loader_cfg,
@@ -247,13 +236,10 @@ def main():
     if not distributed:
         model = MMDataParallel(model, device_ids=[0])
         is_kie = cfg.model.type in ['SDMGR']
-        outputs = single_gpu_test(
-            model, data_loader, args.show, args.show_dir, is_kie, args.show_score_thr)
+        outputs = single_gpu_test(model, data_loader, args.show, args.show_dir, is_kie, args.show_score_thr)
     else:
-        model = MMDistributedDataParallel(model.cuda(), device_ids=[
-                                          torch.cuda.current_device()], broadcast_buffers=False)
-        outputs = multi_gpu_test(
-            model, data_loader, args.tmpdir, args.gpu_collect)
+        model = MMDistributedDataParallel(model.cuda(), device_ids=[torch.cuda.current_device()], broadcast_buffers=False)
+        outputs = multi_gpu_test(model, data_loader, args.tmpdir, args.gpu_collect)
 
     rank, _ = get_dist_info()
     if rank == 0:

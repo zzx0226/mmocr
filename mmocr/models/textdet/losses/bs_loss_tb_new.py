@@ -72,8 +72,8 @@ class BSLoss_tb_new(nn.Module):
         loss_tcl = torch.tensor(0., device=device).float()
         loss_reg_x = torch.tensor(0., device=device).float()
         loss_reg_y = torch.tensor(0., device=device).float()
-        loss_top = torch.tensor(0., device=device).float()
-        loss_bottom = torch.tensor(0., device=device).float()
+        # loss_top = torch.tensor(0., device=device).float()
+        # loss_bottom = torch.tensor(0., device=device).float()
 
         for idx, loss in enumerate(losses):
             if idx == 0:
@@ -84,18 +84,18 @@ class BSLoss_tb_new(nn.Module):
                 loss_reg_x += sum(loss)
             elif idx == 3:
                 loss_reg_y += sum(loss)
-            elif idx == 4:
-                loss_top += sum(loss)
-            else:
-                loss_bottom += sum(loss)
+            # elif idx == 4:
+            #     loss_top += sum(loss)
+            # else:
+            #     loss_bottom += sum(loss)
 
         results = dict(
             loss_text=loss_tr,
             loss_center=loss_tcl,
             loss_reg_x=loss_reg_x,
             loss_reg_y=loss_reg_y,
-            loss_top=loss_top / 10,
-            loss_bottom=loss_bottom / 10,
+            # loss_top=loss_top / 100,
+            # loss_bottom=loss_bottom / 100,
         )
 
         return results
@@ -119,15 +119,15 @@ class BSLoss_tb_new(nn.Module):
         y_map = gt[:, :, :, 3 + k:3 + k * 2].view(-1, k)
         device = x_map.device
 
-        x_map_temp = torch.cat((x_map.reshape(-1, int(k / 2), 2), torch.zeros((x_map.shape[0], int(k / 2), 1)).cuda()),
-                               dim=2).to(device)
-        y_map_temp = torch.cat((y_map.reshape(-1, int(k / 2), 2), torch.zeros((y_map.shape[0], int(k / 2), 1)).cuda()),
-                               dim=2).to(device)
+        # x_map_temp = torch.cat((x_map.reshape(-1, int(k / 2), 2), torch.zeros((x_map.shape[0], int(k / 2), 1)).cuda()),
+        #                        dim=2).to(device)
+        # y_map_temp = torch.cat((y_map.reshape(-1, int(k / 2), 2), torch.zeros((y_map.shape[0], int(k / 2), 1)).cuda()),
+        #                        dim=2).to(device)
 
-        x_pred_temp = torch.cat((x_pred.reshape(-1, int(k / 2), 2), torch.zeros((x_pred.shape[0], int(k / 2), 1)).cuda()),
-                                dim=2).to(device)
-        y_pred_temp = torch.cat((y_pred.reshape(-1, int(k / 2), 2), torch.zeros((y_pred.shape[0], int(k / 2), 1)).cuda()),
-                                dim=2).to(device)
+        # x_pred_temp = torch.cat((x_pred.reshape(-1, int(k / 2), 2), torch.zeros((x_pred.shape[0], int(k / 2), 1)).cuda()),
+        #                         dim=2).to(device)
+        # y_pred_temp = torch.cat((y_pred.reshape(-1, int(k / 2), 2), torch.zeros((y_pred.shape[0], int(k / 2), 1)).cuda()),
+        #                         dim=2).to(device)
 
         tr_train_mask = train_mask * tr_mask
 
@@ -138,8 +138,8 @@ class BSLoss_tb_new(nn.Module):
         loss_tcl = torch.tensor(0.).float().to(device)
         loss_reg_x = torch.tensor(0.).float().to(device)
         loss_reg_y = torch.tensor(0.).float().to(device)
-        top_loss = torch.tensor(0.).float().to(device)
-        bottom_loss = torch.tensor(0.).float().to(device)
+        # top_loss = torch.tensor(0.).float().to(device)
+        # bottom_loss = torch.tensor(0.).float().to(device)
 
         tr_neg_mask = 1 - tr_train_mask
         if tr_train_mask.sum().item() > 0:
@@ -158,15 +158,13 @@ class BSLoss_tb_new(nn.Module):
             loss_reg_y = torch.mean(
                 weight *
                 F.smooth_l1_loss(y_map[tr_train_mask.bool()], y_pred[tr_train_mask.bool()], reduction='none'))  # / scale
-            # chamfer_distance chamfer_dist
-            dist1, dist2, idx1, idx2 = chamfer_distance(x_map_temp[tr_train_mask.bool()].float(),
-                                                        x_pred_temp[tr_train_mask.bool()].float())
-            top_loss = (torch.mean(dist1)) + (torch.mean(dist2))
+            #chamfer_distance chamfer_dist
+            # dist1, dist2, idx1, idx2 = chamfer_distance(x_map_temp.float(), x_pred_temp.float())
+            # top_loss = (torch.mean(dist1)) + (torch.mean(dist2))
 
-            dist1, dist2, idx1, idx2 = chamfer_distance(y_map_temp[tr_train_mask.bool()].float(),
-                                                        y_pred_temp[tr_train_mask.bool()].float())
-            bottom_loss = (torch.mean(dist1)) + (torch.mean(dist2))
-        return loss_tr, loss_tcl, loss_reg_x, loss_reg_y, top_loss, bottom_loss
+            # dist1, dist2, idx1, idx2 = chamfer_distance(y_map_temp.float(), y_pred_temp.float())
+            # bottom_loss = (torch.mean(dist1)) + (torch.mean(dist2))
+        return loss_tr, loss_tcl, loss_reg_x, loss_reg_y  #, top_loss, bottom_loss
 
     def cal_contour(self, ContrlPoint):
         if (ContrlPoint == 0).all():

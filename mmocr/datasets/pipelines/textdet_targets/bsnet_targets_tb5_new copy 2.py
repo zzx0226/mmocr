@@ -115,13 +115,15 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         #     np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
         # new_polygon = np.concatenate([polygon[index:], polygon[:index]])
         # return new_polygon
-
         pRing = LinearRing(polygon)
         if not pRing.is_ccw:
             polygon = np.flipud(polygon)
-        index = np.argsort(np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
+        if len(polygon) != 4:
+            index = np.argsort(polygon[:, 0])[0]
+        else:
+            index = np.argsort(np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
         new_polygon = np.concatenate([polygon[index:], polygon[:index]])
-        return polygon
+        return new_polygon
 
     def generate_center_region_mask(self, img_size, text_polys):
         """Generate text center region mask.
@@ -219,18 +221,6 @@ class BSNetTargets_tb_new(TextSnakeTargets):
         assert CtrlPoints.shape[0] == 10
         return CtrlPoints  #, Contour
 
-    def Resample_icdar(self, points):
-        ResamplePoints = np.empty([0, 2])
-        for i, point in enumerate(points):
-            try:
-                nextPoint = points[i + 1]
-            except:
-                nextPoint = points[0]
-            if i == 0 or i == 2:
-                sectionPoints = np.linspace(point, nextPoint, 8)[:-1]
-                ResamplePoints = np.append(ResamplePoints, sectionPoints, axis=0)
-        return ResamplePoints
-
     def generate_cp_maps(self, img_size, text_polys):
 
         assert isinstance(img_size, tuple)
@@ -250,11 +240,9 @@ class BSNetTargets_tb_new(TextSnakeTargets):
             mask = np.zeros((h, w), dtype=np.uint8)
             polygon = np.array(text_instance).reshape((1, -1, 2))
 
-            # cv2.fillPoly(mask, [polygon[0].astype(np.int32)], 1)
-            # cp_coordinates = self.cal_cp_coordinates(polygon[0], self.bs_degree)  #, contour
-            # polygon = self.normalize_bs_polygon(polygon[0])
-            cv2.fillPoly(mask, [polygon[0].astype(np.int32)], 1)
-            cp_coordinates = self.cal_cp_coordinates(polygon[0], self.bs_degree)  #, contour
+            polygon = self.normalize_bs_polygon(polygon[0])
+            cv2.fillPoly(mask, [polygon.astype(np.int32)], 1)
+            cp_coordinates = self.cal_cp_coordinates(polygon, self.bs_degree)  #, contour
             for i in range(0, cp_num * 2):
                 x_map[i, :, :] = mask * cp_coordinates[i, 0] + \
                     (1 - mask) * x_map[i, :, :]
@@ -292,10 +280,8 @@ class BSNetTargets_tb_new(TextSnakeTargets):
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    polygon = self.normalize_bs_polygon(np.array(poly[0]).reshape(-1, 2))
                     if len(poly[0]) != 14:
-
-                        polygon_resample = self.Resample_icdar(polygon)
+                        polygon_resample = self.Resample(np.array(poly[0]).reshape(-1, 2), 14)
                         lv_text_polys[ind].append([polygon_resample.flatten() / lv_size_divs[ind]])
                     else:
                         lv_text_polys[ind].append([poly[0] / lv_size_divs[ind]])
@@ -309,10 +295,8 @@ class BSNetTargets_tb_new(TextSnakeTargets):
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    polygon = self.normalize_bs_polygon(np.array(ignore_poly[0]).reshape(-1, 2))
-                    if len(ignore_poly[0]) != 14:
-                        # polygon_resample = self.Resample(np.array(ignore_poly[0]).reshape(-1, 2), 14)
-                        polygon_resample = self.Resample_icdar(polygon)
+                    if len(poly[0]) != 14:
+                        polygon_resample = self.Resample(np.array(ignore_poly[0]).reshape(-1, 2), 14)
                         lv_ignore_polys[ind].append([polygon_resample.flatten() / lv_size_divs[ind]])
                     else:
                         lv_ignore_polys[ind].append([ignore_poly[0] / lv_size_divs[ind]])

@@ -1,7 +1,7 @@
 _base_ = [
-    '../../_base_/runtime_10e.py', '../../_base_/schedules/schedule_adam_step_1500e_bsnet.py',
-    '../../_base_/det_models/bsnet_r50dcnv2_fpn_bbox.py', '../../_base_/det_datasets/icdar2015.py',
-    '../../_base_/det_pipelines/bsnet_pipeline_bbox.py'
+    '../../_base_/runtime_10e.py', '../../_base_/schedules/schedule_adam_step_1500e_bsnet_tb.py',
+    '../../_base_/det_models/wlnet_r50_fpn.py', '../../_base_/det_datasets/icdar2015.py',
+    '../../_base_/det_pipelines/wlnet_pipeline.py'
 ]
 
 train_list = {{_base_.train_list}}

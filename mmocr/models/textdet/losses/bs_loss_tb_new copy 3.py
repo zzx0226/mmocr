@@ -4,12 +4,19 @@ import torch
 import torch.nn.functional as F
 from mmdet.core import multi_apply
 from torch import nn
-import pywt
+
 from mmocr.models.builder import LOSSES
+from geomdl import BSpline
+from geomdl import knotvector
+# from chamfer_distance import ChamferDistance
+from .chamfer_distance import ChamferDistance, chamfer_distance
+# chamfer_dist = ChamferDistance()
+
+# from mmocr.models.builder import build_loss
 
 
 @LOSSES.register_module()
-class WLLoss(nn.Module):
+class BSLoss_tb_new(nn.Module):
     """The class for implementing FCENet loss.
 
     FCENet(CVPR2021): `Fourier Contour Embedding for Arbitrary-shaped Text
@@ -22,10 +29,13 @@ class WLLoss(nn.Module):
         ohem_ratio (float): the negative/positive ratio in OHEM.
     """
 
-    def __init__(self, wavelet_type='sym5', ohem_ratio=3.):
+    def __init__(self, bs_degree, cp_num, ohem_ratio=3.):
         super().__init__()
-        self.wavelet_type = wavelet_type
+        self.bs_degree = bs_degree
+        self.cp_num = cp_num
         self.ohem_ratio = ohem_ratio
+        # loss_bbox = dict(type='IoULoss', loss_weight=1.0)
+        # self.loss_bbox = build_loss(loss_bbox)
 
     def forward(self, preds, _, p3_maps, p4_maps, p5_maps):
         """Compute FCENet loss.
@@ -60,8 +70,10 @@ class WLLoss(nn.Module):
 
         loss_tr = torch.tensor(0., device=device).float()
         loss_tcl = torch.tensor(0., device=device).float()
-        loss_real = torch.tensor(0., device=device).float()
-        loss_imag = torch.tensor(0., device=device).float()
+        loss_reg_x = torch.tensor(0., device=device).float()
+        loss_reg_y = torch.tensor(0., device=device).float()
+        loss_top = torch.tensor(0., device=device).float()
+        loss_bottom = torch.tensor(0., device=device).float()
 
         for idx, loss in enumerate(losses):
             if idx == 0:
@@ -69,37 +81,66 @@ class WLLoss(nn.Module):
             elif idx == 1:
                 loss_tcl += sum(loss)
             elif idx == 2:
-                loss_real += sum(loss)
+                loss_reg_x += sum(loss)
+            elif idx == 3:
+                loss_reg_y += sum(loss)
+            elif idx == 4:
+                loss_top += sum(loss)
             else:
-                loss_imag += sum(loss)
-        results = dict(loss_text=loss_tr, loss_center=loss_tcl, loss_real=loss_real, loss_imag=loss_imag)
+                loss_bottom += sum(loss)
+
+        results = dict(
+            loss_text=loss_tr,
+            loss_center=loss_tcl,
+            loss_reg_x=loss_reg_x,
+            loss_reg_y=loss_reg_y,
+            loss_top=loss_top / 10,
+            loss_bottom=loss_bottom / 10,
+        )
 
         return results
 
     def forward_single(self, pred, gt):
         cls_pred = pred[0].permute(0, 2, 3, 1).contiguous()
         reg_pred = pred[1].permute(0, 2, 3, 1).contiguous()
+
         gt = gt.permute(0, 2, 3, 1).contiguous()
 
-        k = 21
+        k = self.cp_num * 2
         tr_pred = cls_pred[:, :, :, :2].view(-1, 2)
         tcl_pred = cls_pred[:, :, :, 2:].view(-1, 2)
-        wl_pred_real = reg_pred[:, :, :, 0:k].view(-1, k)
-        wl_pred_imag = reg_pred[:, :, :, k:].view(-1, k)
+        x_pred = reg_pred[:, :, :, 0:k].view(-1, k)
+        y_pred = reg_pred[:, :, :, k:].view(-1, k)
 
         tr_mask = gt[:, :, :, :1].view(-1)
         tcl_mask = gt[:, :, :, 1:2].view(-1)
         train_mask = gt[:, :, :, 2:3].view(-1)
-        real_map = gt[:, :, :, 3:3 + k].view(-1, k)
-        imag_map = gt[:, :, :, 3 + k:].view(-1, k)
+        x_map = gt[:, :, :, 3:3 + k].view(-1, k)
+        y_map = gt[:, :, :, 3 + k:3 + k * 2].view(-1, k)
+        device = x_map.device
+
+        x_map_temp = torch.cat((x_map.reshape(-1, int(k / 2), 2), torch.zeros((x_map.shape[0], int(k / 2), 1)).cuda()),
+                               dim=2).to(device)
+        y_map_temp = torch.cat((y_map.reshape(-1, int(k / 2), 2), torch.zeros((y_map.shape[0], int(k / 2), 1)).cuda()),
+                               dim=2).to(device)
+
+        x_pred_temp = torch.cat((x_pred.reshape(-1, int(k / 2), 2), torch.zeros((x_pred.shape[0], int(k / 2), 1)).cuda()),
+                                dim=2).to(device)
+        y_pred_temp = torch.cat((y_pred.reshape(-1, int(k / 2), 2), torch.zeros((y_pred.shape[0], int(k / 2), 1)).cuda()),
+                                dim=2).to(device)
 
         tr_train_mask = train_mask * tr_mask
-        device = real_map.device
+
         # tr loss
         loss_tr = self.ohem(tr_pred, tr_mask.long(), train_mask.long())
 
         # tcl loss
         loss_tcl = torch.tensor(0.).float().to(device)
+        loss_reg_x = torch.tensor(0.).float().to(device)
+        loss_reg_y = torch.tensor(0.).float().to(device)
+        top_loss = torch.tensor(0.).float().to(device)
+        bottom_loss = torch.tensor(0.).float().to(device)
+
         tr_neg_mask = 1 - tr_train_mask
         if tr_train_mask.sum().item() > 0:
             loss_tcl_pos = F.cross_entropy(tcl_pred[tr_train_mask.bool()], tcl_mask[tr_train_mask.bool()].long())
@@ -107,27 +148,39 @@ class WLLoss(nn.Module):
             loss_tcl = loss_tcl_pos + 0.5 * loss_tcl_neg
 
         # regression loss
-        loss_real = torch.tensor(0.).float().to(device)
-        loss_imag = torch.tensor(0.).float().to(device)
         if tr_train_mask.sum().item() > 0:
-            weight = (tr_mask[tr_train_mask.bool()].float() + tcl_mask[tr_train_mask.bool()].float()) / 5
+            weight = (tr_mask[tr_train_mask.bool()].float() + tcl_mask[tr_train_mask.bool()].float()) / 2  # 10
             weight = weight.contiguous().view(-1, 1)
 
-            # points_pred=self.Coeffs2Poly()
+            loss_reg_x = torch.mean(
+                weight *
+                F.smooth_l1_loss(x_map[tr_train_mask.bool()], x_pred[tr_train_mask.bool()], reduction='none'))  # / scale
+            loss_reg_y = torch.mean(
+                weight *
+                F.smooth_l1_loss(y_map[tr_train_mask.bool()], y_pred[tr_train_mask.bool()], reduction='none'))  # / scale
+            # chamfer_distance chamfer_dist
+            dist1, dist2, idx1, idx2 = chamfer_distance(x_map_temp[tr_train_mask.bool()].float(),
+                                                        x_pred_temp[tr_train_mask.bool()].float())
+            top_loss = (torch.mean(dist1)) + (torch.mean(dist2))
 
-            loss_real = torch.mean(weight * F.smooth_l1_loss(
-                wl_pred_real[tr_train_mask.bool()], real_map[tr_train_mask.bool()], reduction='none'))  # / scale
-            loss_imag = torch.mean(weight * F.smooth_l1_loss(
-                wl_pred_imag[tr_train_mask.bool()], imag_map[tr_train_mask.bool()], reduction='none'))  # / scale
+            dist1, dist2, idx1, idx2 = chamfer_distance(y_map_temp[tr_train_mask.bool()].float(),
+                                                        y_pred_temp[tr_train_mask.bool()].float())
+            bottom_loss = (torch.mean(dist1)) + (torch.mean(dist2))
+        return loss_tr, loss_tcl, loss_reg_x, loss_reg_y, top_loss, bottom_loss
 
-        return loss_tr, loss_tcl, loss_real, loss_imag
-
-    def Coeffs2Poly(self, WL_Coeffs):
-        wl_coeff = WL_Coeffs.reshape(-1, 7)
-        cA, cH, cV, cD = wl_coeff[0], wl_coeff[1], wl_coeff[2], wl_coeff[3]
-        points = pywt.waverec2((cA, (cH, cV, cD)), self.wavelet_type)
+    def cal_contour(self, ContrlPoint):
+        if (ContrlPoint == 0).all():
+            return np.zeros(40)
+        ContrlPoint = ContrlPoint.reshape(-1, 2)
+        crv = BSpline.Curve()
+        crv.degree = self.bs_degree
+        crv.ctrlpts = ContrlPoint.tolist()
+        crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
+        crv.sample_size = 20
+        points = np.array(crv.evalpts).flatten()
         return points
 
+    #     pass
     def ohem(self, predict, target, train_mask):
         device = train_mask.device
         pos = (target * train_mask).bool()

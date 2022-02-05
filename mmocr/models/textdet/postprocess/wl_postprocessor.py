@@ -26,16 +26,8 @@ class WLPostprocessor(BasePostprocessor):
             candidates.
         nms_thr (float): The threshold of nms.
     """
-    def __init__(
-            self,
-            num_reconstr_points,
-            # text_repr_type='poly',
-            wavelet_type='haar',
-            alpha=1.0,
-            beta=2.0,
-            score_thr=0.3,
-            nms_thr=0.1,
-            **kwargs):
+
+    def __init__(self, num_reconstr_points, wavelet_type='sym5', alpha=1.0, beta=2.0, score_thr=0.3, nms_thr=0.1, **kwargs):
         # super().__init__(text_repr_type)
         self.wavelet_type = wavelet_type
 
@@ -63,7 +55,11 @@ class WLPostprocessor(BasePostprocessor):
         tcl_pred = cls_pred[2:].softmax(dim=0).data.cpu().numpy()
 
         reg_pred = preds[1][0].permute(1, 2, 0).data.cpu().numpy()
-        wl_pred = reg_pred[:, :, :]
+        real_preds = reg_pred[:, :, :20]
+        imag_preds = reg_pred[:, :, 21:-1]
+
+        centers_x = reg_pred[:, :, 20]
+        centers_y = reg_pred[:, :, -1]
 
         score_pred = (tr_pred[1]**self.alpha) * (tcl_pred[1]**self.beta)
         tr_pred_mask = (score_pred) > self.score_thr
@@ -79,25 +75,26 @@ class WLPostprocessor(BasePostprocessor):
 
             score_map = score_pred * deal_map
             score_mask = score_map > 0
-            xy_text = np.argwhere(score_mask)
-            # print(xy_text, xy_text * scale)
-            # dxy = [xy_text[:, 1], xy_text[:, 0]]
-            # dxy_c = dxy * scale
+            xy_texts = np.argwhere(score_mask)
+            dxy = xy_texts[:, 1] + xy_texts[:, 0] * 1j
+            dxy_c = dxy * scale
 
-            wl_coeffs = wl_pred[score_mask]
+            real_pred, imag_pred = real_preds[score_mask], imag_preds[score_mask]
+            center_x, center_y = centers_x[score_mask], centers_y[score_mask]
+            score = score_map[score_mask].reshape(-1, 1)
             polygons = []
-            for i, wl_coeff in enumerate(wl_coeffs):
-                # c = np.vstack((x, y)).T
-                # c = x + y * 1j
+            for i, (real, imag, dxy, x, y) in enumerate(zip(real_pred, imag_pred, dxy_c, center_x, center_y)):
+                # c = np.vstack((real, imag)).T
+                c = real + imag * 1j
                 # c[:, self.fourier_degree] = c[:, self.fourier_degree] + dxy
-                wl_coeff = wl_coeff * scale
-                wl_coeff = wl_coeff.reshape(-1, 7)
-                cA, cH, cV, cD = wl_coeff[0].reshape(7, 1), wl_coeff[1].reshape(7, 1), wl_coeff[2].reshape(
-                    7, 1), wl_coeff[3].reshape(7, 1)
+                wl_coeff = c * scale
+                wl_coeff = [wl_coeff, np.zeros(20), np.zeros(31), np.zeros(54)]
 
-                points = pywt.waverec2((cA, (cH, cV, cD)), self.wavelet_type)
+                points = pywt.waverec(wl_coeff, self.wavelet_type)
+                points = np.append(points.real, points.imag).reshape(2, -1).T
+                points[:, 0] = points[:, 0] + dxy.real + x * scale
+                points[:, 1] = points[:, 1] + dxy.imag + y * scale
 
-                score = score_map[score_mask].reshape(-1, 1)
                 points = np.append(points.flatten(), score[i][0]).tolist()
                 polygons.append(points)
             polygons = poly_nms(polygons, self.nms_thr)

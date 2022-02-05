@@ -410,8 +410,8 @@ class TextSnakeTargets(BaseTextDetTargets):
         for poly in text_polys:
             assert len(poly) == 1
             text_instance = [[poly[0][i], poly[0][i + 1]] for i in range(0, len(poly[0]), 2)]
-            # if len(text_instance) != 14:
-            #     text_instance = self.Resample(np.array(text_instance), 14)
+            if len(text_instance) != 14:
+                text_instance = self.Resample(np.array(text_instance), 14)
             polygon = np.array(text_instance, dtype=np.int32).reshape((1, -1, 2))
             cv2.fillPoly(text_region_mask, polygon, 1)
 

@@ -26,29 +26,26 @@ class BSHead_tb(HeadMixin, BaseModule):
         postprocessor (dict): Config of postprocessor for FCENet.
     """
 
-    def __init__(
-            self,
-            bs_degree,
-            cp_num,
-            in_channels,
-            scales,
-            nms_thr=0.1,
-            loss=dict(type='BSLoss_tb', bs_degree=4, cp_num=5),
-            postprocessor=dict(
-                type='BSPostprocessor_tb',
-                bs_degree=4,
-                cp_num=5,
-                num_reconstr_points=50,
-                alpha=1.0,
-                beta=2.0,
-                score_thr=0.3),
-            train_cfg=None,
-            test_cfg=None,
-            init_cfg=dict(type='Normal', mean=0, std=0.01, override=[dict(name='out_conv_cls'),
-                                                                     dict(name='out_conv_reg')]),
-            **kwargs):
-        old_keys = ['text_repr_type', 'decoding_type',
-                    'num_reconstr_points', 'alpha', 'beta', 'score_thr']
+    def __init__(self,
+                 bs_degree,
+                 cp_num,
+                 in_channels,
+                 scales,
+                 nms_thr=0.1,
+                 loss=dict(type='BSLoss_tb', bs_degree=4, cp_num=5),
+                 postprocessor=dict(type='BSPostprocessor_tb',
+                                    bs_degree=4,
+                                    cp_num=5,
+                                    num_reconstr_points=50,
+                                    alpha=1.0,
+                                    beta=2.0,
+                                    score_thr=0.3),
+                 train_cfg=None,
+                 test_cfg=None,
+                 init_cfg=dict(type='Normal', mean=0, std=0.01, override=[dict(name='out_conv_cls'),
+                                                                          dict(name='out_conv_reg')]),
+                 **kwargs):
+        old_keys = ['text_repr_type', 'decoding_type', 'num_reconstr_points', 'alpha', 'beta', 'score_thr']
         for key in old_keys:
             if kwargs.get(key, None):
                 postprocessor[key] = kwargs.get(key)
@@ -88,10 +85,8 @@ class BSHead_tb(HeadMixin, BaseModule):
         self.out_channels_cls = 4
         self.out_channels_reg = cp_num * 4
 
-        self.out_conv_cls = nn.Conv2d(
-            self.in_channels, self.out_channels_cls, kernel_size=3, stride=1, padding=1)
-        self.out_conv_reg = nn.Conv2d(
-            self.in_channels, self.out_channels_reg, kernel_size=3, stride=1, padding=1)
+        self.out_conv_cls = nn.Conv2d(self.in_channels, self.out_channels_cls, kernel_size=3, stride=1, padding=1)
+        self.out_conv_reg = nn.Conv2d(self.in_channels, self.out_channels_reg, kernel_size=3, stride=1, padding=1)
 
     def forward(self, feats):
         """
@@ -128,8 +123,7 @@ class BSHead_tb(HeadMixin, BaseModule):
         boundaries = poly_nms(boundaries, self.nms_thr)
 
         if rescale:
-            boundaries = self.resize_boundary(
-                boundaries, 1.0 / img_metas[0]['scale_factor'])
+            boundaries = self.resize_boundary(boundaries, 1.0 / img_metas[0]['scale_factor'])
 
         results = dict(boundary_result=boundaries)
         return results

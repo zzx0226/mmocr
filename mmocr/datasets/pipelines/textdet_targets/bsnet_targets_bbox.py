@@ -38,6 +38,53 @@ class BSNetTargets_bbox(TextSnakeTargets):
         self.cp_num = cp_num
         self.sample_size = sample_size
 
+    def Resample(self, points, ResampleNum):
+        perimeter = LinearRing(points).length
+        ResamplePoints = np.empty([0, 2], dtype=np.int32)
+        # 计算每条边应分得的点数 这里存在一个问题 int()的过程中会使得重采样的点小于ResampleNum 这里采用的策略是将缺少的点分给长的边
+        eachLengthPoints = []
+        for i, point in enumerate(points):
+            try:
+                nextPoint = points[i + 1]
+            except:
+                nextPoint = points[0]
+            eachLengthPoints.append(int(np.linalg.norm((point - nextPoint)) * ResampleNum / perimeter))
+
+        eachLengthPoints = np.array(eachLengthPoints)
+        # print(eachLengthPoints.sum())
+        if eachLengthPoints.sum() < ResampleNum:
+            lostPoints = ResampleNum - eachLengthPoints.sum()
+            index = np.arange(len(eachLengthPoints))
+            total = np.column_stack((index, eachLengthPoints))
+            total = total[np.argsort(total[:, 1])]
+
+            Temp = np.zeros_like(eachLengthPoints)
+            Temp[-lostPoints:] = 1
+            total[:, 1] += Temp
+            total = total[np.argsort(total[:, 0])]
+
+            eachLengthPoints = total[:, 1]
+        elif eachLengthPoints.sum() > ResampleNum:
+            lostPoints = eachLengthPoints.sum() - ResampleNum
+            Temp = np.zeros_like(eachLengthPoints)
+            Temp[0:lostPoints] = 1
+            eachLengthPoints += Temp
+
+        else:
+            pass
+        if eachLengthPoints.sum() != ResampleNum:
+            raise ValueError("重采样点数不符")
+        # eachLengthPoints中存放着每条边应当重采样的点的数目
+        for i, point in enumerate(points):
+            try:
+                nextPoint = points[i + 1]
+            except:
+                nextPoint = points[0]
+            sectionPoints = np.linspace(point, nextPoint, eachLengthPoints[i] + 1)[:-1]
+            ResamplePoints = np.append(ResamplePoints, sectionPoints, axis=0)
+
+        return ResamplePoints
+
     def normalize_bs_polygon(self, polygon):
 
         pRing = LinearRing(polygon)
@@ -167,7 +214,11 @@ class BSNetTargets_bbox(TextSnakeTargets):
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    lv_text_polys[ind].append([poly[0] / lv_size_divs[ind]])
+                    if len(poly[0]) != 14:
+                        polygon_resample = self.Resample(np.array(poly[0]).reshape(-1, 2), 14)
+                        lv_text_polys[ind].append([polygon_resample.flatten() / lv_size_divs[ind]])
+                    else:
+                        lv_text_polys[ind].append([poly[0] / lv_size_divs[ind]])
 
         for ignore_poly in ignore_polys:
             assert len(ignore_poly) == 1
@@ -178,7 +229,11 @@ class BSNetTargets_bbox(TextSnakeTargets):
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    lv_ignore_polys[ind].append([ignore_poly[0] / lv_size_divs[ind]])
+                    if len(ignore_poly[0]) != 14:
+                        polygon_resample = self.Resample(np.array(ignore_poly[0]).reshape(-1, 2), 14)
+                        lv_ignore_polys[ind].append([polygon_resample.flatten() / lv_size_divs[ind]])
+                    else:
+                        lv_ignore_polys[ind].append([ignore_poly[0] / lv_size_divs[ind]])
 
         for ind, size_divisor in enumerate(lv_size_divs):
             current_level_maps = []
@@ -193,11 +248,9 @@ class BSNetTargets_bbox(TextSnakeTargets):
             effective_mask = self.generate_effective_mask(level_img_size, lv_ignore_polys[ind])[None]
             current_level_maps.append(effective_mask)
 
-            cp_x_maps, cp_y_maps = self.generate_cp_maps(level_img_size, lv_text_polys[ind])  #, bbox
+            cp_x_maps, cp_y_maps = self.generate_cp_maps(level_img_size, lv_text_polys[ind])  #, contour_t, contour_b
             current_level_maps.append(cp_x_maps)
             current_level_maps.append(cp_y_maps)
-
-            # current_level_maps.append(bbox)
 
             level_maps.append(np.concatenate(current_level_maps))
 

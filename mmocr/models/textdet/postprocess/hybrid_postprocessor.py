@@ -71,8 +71,7 @@ class HybridPostprocessor(BasePostprocessor):
         bs_pred = preds[2][0].permute(1, 2, 0).data.cpu().numpy()
 
         x_pred = reg_pred[:, :, :2 * self.fourier_degree + 1]
-        y_pred = reg_pred[:, :, 2 * self.fourier_degree +
-                          1:4 * self.fourier_degree + 2]
+        y_pred = reg_pred[:, :, 2 * self.fourier_degree + 1:4 * self.fourier_degree + 2]
 
         bs_x_pred = bs_pred[:, :, :self.cp_num]
         bs_y_pred = bs_pred[:, :, self.cp_num:]
@@ -81,8 +80,7 @@ class HybridPostprocessor(BasePostprocessor):
         tr_pred_mask = (score_pred) > self.score_thr
         tr_mask = fill_hole(tr_pred_mask)
 
-        tr_contours, _ = cv2.findContours(tr_mask.astype(
-            np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # opencv4
+        tr_contours, _ = cv2.findContours(tr_mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # opencv4
 
         mask = np.zeros_like(tr_mask)
         boundaries = []
@@ -134,8 +132,7 @@ class HybridPostprocessor(BasePostprocessor):
         if self.text_repr_type == 'quad':
             new_boundaries = []
             for boundary in boundaries:
-                poly = np.array(
-                    boundary[:-1]).reshape(-1, 2).astype(np.float32)
+                poly = np.array(boundary[:-1]).reshape(-1, 2).astype(np.float32)
                 score = boundary[-1]
                 points = cv2.boxPoints(cv2.minAreaRect(poly))
                 points = np.int0(points)

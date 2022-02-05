@@ -137,7 +137,7 @@ class BSPostprocessor_bbox(BasePostprocessor):
             polygons = [points.tolist()]
             boundaries = boundaries + polygons
 
-        boundaries = poly_nms(boundaries, self.nms_thr)
+        # boundaries = poly_nms(boundaries, self.nms_thr)
 
         # if self.text_repr_type == 'quad':
         #     new_boundaries = []

@@ -90,54 +90,54 @@ class BSPostprocessor_tb_new(BasePostprocessor):
 
             xs, ys = x_pred[score_mask], y_pred[score_mask]
             score = score_map[score_mask].flatten()
-            # for i, (x, y) in enumerate(zip(xs, ys)):
-            #     c = np.vstack((x, y)).T
-            #     split_index = int(len(c) / 2)
-            #     c *= scale
-            #     TopCP = c[:split_index].reshape(-1, 2)
-            #     BottomCP = c[split_index:].reshape(-1, 2)
+            for i, (x, y) in enumerate(zip(xs, ys)):
+                c = np.vstack((x, y)).T
+                split_index = int(len(c) / 2)
+                c *= scale
+                TopCP = c[:split_index].reshape(-1, 2)
+                BottomCP = c[split_index:].reshape(-1, 2)
 
-            #     crv = BSpline.Curve()
-            #     crv.degree = self.bs_degree
-            #     crv.ctrlpts = TopCP.tolist()
-            #     crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-            #     points1 = np.array(crv.evalpts)
+                crv = BSpline.Curve()
+                crv.degree = self.bs_degree
+                crv.ctrlpts = TopCP.tolist()
+                crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
+                points1 = np.array(crv.evalpts)
 
-            #     crv = BSpline.Curve()
-            #     crv.degree = self.bs_degree
-            #     crv.ctrlpts = BottomCP.tolist()
-            #     crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-            #     points2 = np.array(crv.evalpts)
+                crv = BSpline.Curve()
+                crv.degree = self.bs_degree
+                crv.ctrlpts = BottomCP.tolist()
+                crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
+                points2 = np.array(crv.evalpts)
 
-            #     points = np.append(points1, points2)
-            #     points = np.append(points.flatten(), score[i]).flatten()
-            #     polygons = [points.tolist()]
-            #     boundaries = boundaries + polygons
-            index = np.argmax(score)
-            c = np.vstack((xs[index], ys[index])).T
-            split_index = int(len(c) / 2)
-            c *= scale
-            TopCP = c[:split_index].reshape(-1, 2)
-            BottomCP = c[split_index:].reshape(-1, 2)
+                points = np.append(points1, points2)
+                points = np.append(points.flatten(), score[i]).flatten()
+                polygons = [points.tolist()]
+                boundaries = boundaries + polygons
+            # index = np.argmax(score)
+            # c = np.vstack((xs[index], ys[index])).T
+            # split_index = int(len(c) / 2)
+            # c *= scale
+            # TopCP = c[:split_index].reshape(-1, 2)
+            # BottomCP = c[split_index:].reshape(-1, 2)
 
-            crv = BSpline.Curve()
-            crv.degree = self.bs_degree
-            crv.ctrlpts = TopCP.tolist()
-            crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-            points1 = np.array(crv.evalpts)
+            # crv = BSpline.Curve()
+            # crv.degree = self.bs_degree
+            # crv.ctrlpts = TopCP.tolist()
+            # crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
+            # points1 = np.array(crv.evalpts)
 
-            crv = BSpline.Curve()
-            crv.degree = self.bs_degree
-            crv.ctrlpts = BottomCP.tolist()
-            crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
-            points2 = np.array(crv.evalpts)
+            # crv = BSpline.Curve()
+            # crv.degree = self.bs_degree
+            # crv.ctrlpts = BottomCP.tolist()
+            # crv.knotvector = knotvector.generate(crv.degree, crv.ctrlpts_size)
+            # points2 = np.array(crv.evalpts)
 
-            points = np.append(points1, points2)
-            points = np.append(points.flatten(), score[index]).flatten()
-            polygons = [points.tolist()]
-            boundaries = boundaries + polygons
+            # points = np.append(points1, points2)
+            # points = np.append(points.flatten(), score[index]).flatten()
+            # polygons = [points.tolist()]
+            # boundaries = boundaries + polygons
 
-        # boundaries = poly_nms(boundaries, self.nms_thr)
+        boundaries = poly_nms(boundaries, self.nms_thr)
 
         # if self.text_repr_type == 'quad':
         #     new_boundaries = []

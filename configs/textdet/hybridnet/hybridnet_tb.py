@@ -8,7 +8,7 @@ LastEditTime: 2022-01-07 18:21:49
 '''
 _base_ = [
     '../../_base_/runtime_10e.py', '../../_base_/schedules/schedule_adam_step_1500e_bsnet.py',
-    '../../_base_/det_models/hybridnet_r50dcnv2_fpn_tb5.py', '../../_base_/det_datasets/ctw1500.py',
+    '../../_base_/det_models/hybridnet_r50dcnv2_fpn_tb5.py', '../../_base_/det_datasets/icdar2015.py',
     '../../_base_/det_pipelines/hybridnet_pipeline_tb5.py'
 ]
 

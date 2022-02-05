@@ -25,6 +25,7 @@ class FCEPostprocessor(BasePostprocessor):
             candidates.
         nms_thr (float): The threshold of nms.
     """
+
     def __init__(self,
                  fourier_degree,
                  num_reconstr_points,

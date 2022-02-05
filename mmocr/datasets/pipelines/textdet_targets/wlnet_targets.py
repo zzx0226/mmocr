@@ -7,6 +7,7 @@ from numpy.linalg import norm
 
 import mmocr.utils.check_argument as check_argument
 from .textsnake_targets import TextSnakeTargets
+from shapely.geometry.polygon import LinearRing
 import pywt
 
 
@@ -27,11 +28,13 @@ class WLNetTargets(TextSnakeTargets):
         level_proportion_range (tuple(tuple(int))): The range of text sizes
             assigned to each level.
     """
+
     def __init__(self,
                  resample_step=4.0,
-                 wavelet_type='haar',
+                 wavelet_type='sym5',
                  center_region_shrink_ratio=0.3,
                  level_size_divisors=(8, 16, 32),
+                 resample_num=100,
                  level_proportion_range=((0, 0.4), (0.3, 0.7), (0.6, 1.0))):
 
         super().__init__()
@@ -42,8 +45,56 @@ class WLNetTargets(TextSnakeTargets):
         self.center_region_shrink_ratio = center_region_shrink_ratio
         self.level_size_divisors = level_size_divisors
         self.level_proportion_range = level_proportion_range
-
+        self.resample_num = resample_num
         self.wavelet_type = wavelet_type
+
+    def Resample(self, points, ResampleNum):
+        perimeter = LinearRing(points).length
+        ResamplePoints = np.empty([0, 2], dtype=np.int32)
+        #计算每条边应分得的点数 这里存在一个问题 int()的过程中会使得重采样的点小于ResampleNum 这里采用的策略是将缺少的点分给长的边
+        eachLengthPoints = []
+        for i, point in enumerate(points):
+            try:
+                nextPoint = points[i + 1]
+            except:
+                nextPoint = points[0]
+            eachLengthPoints.append(int(np.linalg.norm((point - nextPoint)) * ResampleNum / perimeter))
+
+        eachLengthPoints = np.array(eachLengthPoints)
+        # print(eachLengthPoints.sum())
+        if eachLengthPoints.sum() < 100:
+            lostPoints = ResampleNum - eachLengthPoints.sum()
+            index = np.arange(len(eachLengthPoints))
+            total = np.column_stack((index, eachLengthPoints))
+            total = total[np.argsort(total[:, 1])]
+
+            Temp = np.zeros_like(eachLengthPoints)
+            Temp[-lostPoints:] = 1
+            total[:, 1] += Temp
+            total = total[np.argsort(total[:, 0])]
+
+            eachLengthPoints = total[:, 1]
+        elif eachLengthPoints.sum() > 100:
+            lostPoints = eachLengthPoints.sum() - ResampleNum
+            Temp = np.zeros_like(eachLengthPoints)
+            Temp[0:lostPoints] = 1
+            eachLengthPoints += Temp
+
+        else:
+            pass
+        if eachLengthPoints.sum() != ResampleNum:
+            raise ValueError("重采样点数不符")
+        #eachLengthPoints中存放着每条边应当重采样的点的数目
+        for i, point in enumerate(points):
+            try:
+                nextPoint = points[i + 1]
+            except:
+                nextPoint = points[0]
+            sectionPoints = np.linspace(point, nextPoint, eachLengthPoints[i] + 1)
+            ResamplePoints = np.append(ResamplePoints, sectionPoints[:-1], axis=0)
+        ResamplePoints = ResamplePoints
+
+        return ResamplePoints
 
     def generate_center_region_mask(self, img_size, text_polys):
         """Generate text center region mask.
@@ -100,12 +151,10 @@ class WLNetTargets(TextSnakeTargets):
         Returns:
             new_polygon (lost[float]): The polygon with start point at right.
         """
-        temp_polygon = polygon - polygon.mean(axis=0)
-        x = np.abs(temp_polygon[:, 0])
-        y = temp_polygon[:, 1]
-        index_x = np.argsort(x)
-        index_y = np.argmin(y[index_x[:8]])
-        index = index_x[index_y]
+        pRing = LinearRing(polygon)
+        if not pRing.is_ccw:
+            polygon = np.flipud(polygon)
+        index = np.argsort(np.sqrt(polygon[:, 0]**2 + polygon[:, 1]**2) + polygon[:, 0])[0]
         new_polygon = np.concatenate([polygon[index:], polygon[:index]])
         return new_polygon
 
@@ -115,8 +164,8 @@ class WLNetTargets(TextSnakeTargets):
         assert check_argument.is_2dlist(text_polys)
 
         h, w = img_size
-        wavelet_map = np.zeros((28, h, w), dtype=np.float32)
-
+        real_map = np.zeros((21, h, w), dtype=np.float32)
+        imag_map = np.zeros((21, h, w), dtype=np.float32)
         for poly in text_polys:
             assert len(poly) == 1
             text_instance = [[poly[0][i], poly[0][i + 1]] for i in range(0, len(poly[0]), 2)]
@@ -124,13 +173,26 @@ class WLNetTargets(TextSnakeTargets):
             polygon = np.array(text_instance).reshape((1, -1, 2))
             cv2.fillPoly(mask, polygon.astype(np.int32), 1)
 
-            cA, (cH, cV, cD) = pywt.wavedec2(polygon[0], self.wavelet_type)
-            wl_coeffs = np.array([cA, cH, cV, cD]).reshape(-1)
+            index = 20
+            ResamplePoints = np.concatenate([polygon[0][index:], polygon[0][:index]])
+            temp_Points = ResamplePoints - ResamplePoints.mean(axis=0)
 
-            for i in range(0, 28):
-                wavelet_map[i, :, :] = mask * wl_coeffs[i] + (1 - mask) * wavelet_map[i, :, :]
+            center_x = ResamplePoints.mean(axis=0)[0]
+            center_y = ResamplePoints.mean(axis=0)[1]
 
-        return wavelet_map
+            EachContour = temp_Points[:, 0] + 1j * temp_Points[:, 1]
+            coeffs = pywt.wavedec(EachContour, self.wavelet_type, level=3)
+
+            for i in range(0, 20):
+                real_map[i, :, :] = mask * coeffs[0][i].real + (1 - mask) * real_map[i, :, :]
+                imag_map[i, :, :] = mask * coeffs[0][i].imag + (1 - mask) * imag_map[i, :, :]
+
+            yx = np.argwhere(mask > 0.5)
+            k_ind = np.ones((len(yx)), dtype=np.int64) * 20
+            y, x = yx[:, 0], yx[:, 1]
+            real_map[k_ind, y, x] = center_x-x
+            imag_map[k_ind, y, x] = center_y-y
+        return real_map, imag_map
 
     def generate_level_targets(self, img_size, text_polys, ignore_polys):
         """Generate ground truth target on each level.
@@ -157,7 +219,10 @@ class WLNetTargets(TextSnakeTargets):
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    lv_text_polys[ind].append([poly[0] / lv_size_divs[ind]])
+                    polygon = self.normalize_polygon(np.array(poly[0]).reshape(-1, 2))
+                    # if len(poly[0]) != 100:
+                    polygon = self.Resample(polygon, self.resample_num).flatten()
+                    lv_text_polys[ind].append([polygon / lv_size_divs[ind]])
 
         for ignore_poly in ignore_polys:
             assert len(ignore_poly) == 1
@@ -168,7 +233,10 @@ class WLNetTargets(TextSnakeTargets):
 
             for ind, proportion_range in enumerate(lv_proportion_range):
                 if proportion_range[0] < proportion < proportion_range[1]:
-                    lv_ignore_polys[ind].append([ignore_poly[0] / lv_size_divs[ind]])
+                    polygon = self.normalize_polygon(np.array(ignore_poly[0]).reshape(-1, 2))
+                    # if len(ignore_poly[0]) != 100:
+                    polygon = self.Resample(polygon, self.resample_num).flatten()
+                    lv_text_polys[ind].append([polygon / lv_size_divs[ind]])
 
         for ind, size_divisor in enumerate(lv_size_divs):
             current_level_maps = []
@@ -183,8 +251,9 @@ class WLNetTargets(TextSnakeTargets):
             effective_mask = self.generate_effective_mask(level_img_size, lv_ignore_polys[ind])[None]
             current_level_maps.append(effective_mask)
 
-            wl_maps = self.generate_wl_maps(level_img_size, lv_text_polys[ind])
-            current_level_maps.append(wl_maps)
+            real_map, imag_map = self.generate_wl_maps(level_img_size, lv_text_polys[ind])
+            current_level_maps.append(real_map)
+            current_level_maps.append(imag_map)
 
             level_maps.append(np.concatenate(current_level_maps))
 
