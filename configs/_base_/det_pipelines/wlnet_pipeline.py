@@ -29,14 +29,14 @@ train_pipeline_icdar2015 = [
     dict(type='Collect', keys=['img', 'p3_maps', 'p4_maps', 'p5_maps'])
 ]
 
-img_scale_icdar2015 = (800, 800)
+img_scale_icdar2015 = (2260, 2260)
 test_pipeline_icdar2015 = [
     dict(type='LoadImageFromFile', color_type='color_ignore_orientation'),
     dict(type='MultiScaleFlipAug',
          img_scale=img_scale_icdar2015,
          flip=False,
          transforms=[
-             dict(type='Resize', img_scale=(800, 800), keep_ratio=False),
+             dict(type='Resize', img_scale=(800, 800), keep_ratio=True),
              dict(type='Normalize', **img_norm_cfg),
              dict(type='Pad', size_divisor=32),
              dict(type='ImageToTensor', keys=['img']),
@@ -64,21 +64,34 @@ train_pipeline_ctw1500 = [
     dict(type='Collect', keys=['img', 'p3_maps', 'p4_maps', 'p5_maps'])
 ]
 
-img_scale_ctw1500 = (800, 800)
+# img_scale_ctw1500 = (800, 800)
+# test_pipeline_ctw1500 = [
+#     dict(type='LoadImageFromFile', color_type='color_ignore_orientation'),
+#     dict(type='MultiScaleFlipAug',
+#          img_scale=img_scale_ctw1500,
+#          flip=False,
+#          transforms=[
+#              dict(type='Resize', img_scale=(800, 800), keep_ratio=True),
+#              dict(type='Normalize', **img_norm_cfg),
+#              dict(type='Pad', size_divisor=32),
+#              dict(type='ImageToTensor', keys=['img']),
+#              dict(type='Collect', keys=['img']),
+#          ])
+# ]
+img_scale_ctw1500 = (1080, 1080)
 test_pipeline_ctw1500 = [
     dict(type='LoadImageFromFile', color_type='color_ignore_orientation'),
     dict(type='MultiScaleFlipAug',
          img_scale=img_scale_ctw1500,
          flip=False,
          transforms=[
-             dict(type='Resize', img_scale=(800, 800), keep_ratio=False),
+             dict(type='Resize', img_scale=(1280, 800), keep_ratio=True),
              dict(type='Normalize', **img_norm_cfg),
              dict(type='Pad', size_divisor=32),
              dict(type='ImageToTensor', keys=['img']),
              dict(type='Collect', keys=['img']),
          ])
 ]
-
 # for totaltext
 # leval_prop_range_totaltext = ((0, 0.25), (0.2, 0.65), (0.55, 1.0))
 leval_prop_range_totaltext = ((0, 0.4), (0.3, 0.7), (0.6, 1.0))
@@ -114,14 +127,14 @@ train_pipeline_totaltext = [
 #              dict(type='Collect', keys=['img']),
 #          ])
 # ]
-img_scale_totaltext = (800, 800)
+img_scale_totaltext = (1280, 1280)
 test_pipeline_totaltext = [
     dict(type='LoadImageFromFile', color_type='color_ignore_orientation'),
     dict(type='MultiScaleFlipAug',
          img_scale=img_scale_totaltext,
          flip=False,
          transforms=[
-             dict(type='Resize', img_scale=(800, 800), keep_ratio=False),
+             dict(type='Resize', img_scale=(1280, 800), keep_ratio=True),
              dict(type='Normalize', **img_norm_cfg),
              dict(type='Pad', size_divisor=32),
              dict(type='ImageToTensor', keys=['img']),

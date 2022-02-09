@@ -21,10 +21,8 @@ model = dict(
                   norm_cfg=dict(type='BN', requires_grad=True),
                   norm_eval=True,
                   style='pytorch',
-                  dcn=dict(type='DCNv2', deform_groups=2,
-                           fallback_on_stride=False),
-                  init_cfg=dict(type='Pretrained',
-                                checkpoint='torchvision://resnet50'),
+                  dcn=dict(type='DCNv2', deform_groups=2, fallback_on_stride=False),
+                  init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50'),
                   stage_with_dcn=(False, True, True, True)),
     neck=dict(
         type='mmdet.FPN',

@@ -8,7 +8,7 @@ LastEditTime: 2022-01-10 20:33:35
 '''
 _base_ = [
     '../../_base_/runtime_10e.py', '../../_base_/schedules/schedule_sgd_1500e.py',
-    '../../_base_/det_models/wlnet_r50dcnv2_fpn.py', '../../_base_/det_datasets/totaltext.py',
+    '../../_base_/det_models/wlnet_r50dcnv2_fpn_ca.py', '../../_base_/det_datasets/totaltext.py',
     '../../_base_/det_pipelines/wlnet_pipeline.py'
 ]
 
@@ -18,8 +18,8 @@ test_list = {{_base_.test_list}}
 train_pipeline_totaltext = {{_base_.train_pipeline_totaltext}}
 test_pipeline_totaltext = {{_base_.test_pipeline_totaltext}}
 
-data = dict(samples_per_gpu=8,
-            workers_per_gpu=8,
+data = dict(samples_per_gpu=7,
+            workers_per_gpu=7,
             val_dataloader=dict(samples_per_gpu=1),
             test_dataloader=dict(samples_per_gpu=1),
             train=dict(type='UniformConcatDataset', datasets=train_list, pipeline=train_pipeline_totaltext),
