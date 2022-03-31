@@ -4,7 +4,7 @@ Version: 1.0
 Autor: Zhangzixu
 Date: 2021-12-21 21:42:50
 LastEditors: Zhangzixu
-LastEditTime: 2022-03-30 08:46:44
+LastEditTime: 2022-03-31 10:32:38
 '''
 _base_ = [
     '../../_base_/runtime_10e.py', '../../_base_/schedules/schedule_adam_step_1000e.py',
@@ -26,4 +26,4 @@ data = dict(samples_per_gpu=6,
             val=dict(type='UniformConcatDataset', datasets=test_list, pipeline=test_pipeline_ctw1500),
             test=dict(type='UniformConcatDataset', datasets=test_list, pipeline=test_pipeline_ctw1500))
 
-evaluation = dict(interval=50, metric='hmean-iou')
+evaluation = dict(interval=10, metric='hmean-iou')
