@@ -1,3 +1,11 @@
+'''
+Description: 
+Version: 1.0
+Autor: Zhangzixu
+Date: 2022-01-10 17:58:27
+LastEditors: Zhangzixu
+LastEditTime: 2022-03-02 08:42:40
+'''
 # Copyright (c) OpenMMLab. All rights reserved.
 import warnings
 
@@ -12,6 +20,7 @@ class TextDetectorMixin:
     Args:
         show_score (bool): Whether to show text instance score.
     """
+
     def __init__(self, show_score):
         self.show_score = show_score
 
@@ -19,9 +28,9 @@ class TextDetectorMixin:
                     img,
                     result,
                     score_thr=0.5,
-                    bbox_color='green',
-                    text_color='green',
-                    thickness=1,
+                    bbox_color='red',
+                    text_color='red',
+                    thickness=2,
                     font_scale=0.5,
                     win_name='',
                     show=False,
@@ -71,8 +80,9 @@ class TextDetectorMixin:
                                  show=show,
                                  wait_time=wait_time,
                                  out_file=out_file,
-                                 show_score=True)
+                                 show_score=show)
 
         if not (show or out_file):
-            warnings.warn('show==False and out_file is not specified, ' 'result image will be returned')
+            warnings.warn('show==False and out_file is not specified, '
+                          'result image will be returned')
         return img

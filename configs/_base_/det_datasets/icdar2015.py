@@ -1,3 +1,11 @@
+'''
+Description: 
+Version: 1.0
+Autor: Zhangzixu
+Date: 2022-01-10 17:58:26
+LastEditors: Zhangzixu
+LastEditTime: 2022-03-10 20:27:14
+'''
 dataset_type = 'IcdarDataset'
 data_root = '/home/atom/Research_STD/Datasets/mmocr/icdar2015'
 

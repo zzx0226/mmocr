@@ -25,9 +25,12 @@ from .bs_loss_tb_new import BSLoss_tb_new
 from .chamfer_distance import ChamferDistance, chamfer_distance
 from .bs_loss_tb_icdar import BSLoss_tb_icdar
 from .wl_loss_test import WLLoss_test
-
+from .wl_loss_diff_weight import WLLoss_diff_weight
+from .wl_loss_direct import WLLoss_direct
+from .wl_loss_chamfer import WLLoss_chamfer
+from .wl_loss_org import WLLoss_org
 __all__ = [
     'PANLoss', 'PSELoss', 'DBLoss', 'TextSnakeLoss', 'FCELoss', 'DRRGLoss', 'BSLoss', 'BSLoss_bbox', 'WLLoss', 'BSLoss_fcos',
     'BSLoss_Out5', 'HybridLoss', 'HybridLoss_tb', 'BSLoss_tb', 'BSLoss_tb_new', 'ChamferDistance', 'chamfer_distance',
-    'BSLoss_tb_icdar', 'WLLoss_test'
+    'BSLoss_tb_icdar', 'WLLoss_test', 'WLLoss_diff_weight', 'WLLoss_direct', 'WLLoss_chamfer','WLLoss_org'
 ]

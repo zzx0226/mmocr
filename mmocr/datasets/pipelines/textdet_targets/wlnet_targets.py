@@ -47,6 +47,18 @@ class WLNetTargets(TextSnakeTargets):
         self.level_proportion_range = level_proportion_range
         self.resample_num = resample_num
         self.wavelet_type = wavelet_type
+        if self.wavelet_type == 'sym5' or self.wavelet_type == 'bior4.4' or self.wavelet_type == 'db5':
+            self.num_cA = 20
+        elif self.wavelet_type == 'bior3.1':
+            self.num_cA = 15
+        elif self.wavelet_type == 'bior3.5':
+            self.num_cA = 22
+        elif self.wavelet_type == 'coif3' or self.wavelet_type == 'rbio2.8':
+            self.num_cA = 27
+            self.num_cD = [27, 37, 58]
+        elif self.wavelet_type == 'dmey':
+            self.num_cA = 65
+            self.num_cD = [65, 70, 80]
 
     def Resample(self, points, ResampleNum):
         perimeter = LinearRing(points).length
@@ -164,8 +176,8 @@ class WLNetTargets(TextSnakeTargets):
         assert check_argument.is_2dlist(text_polys)
 
         h, w = img_size
-        real_map = np.zeros((21, h, w), dtype=np.float32)
-        imag_map = np.zeros((21, h, w), dtype=np.float32)
+        real_map = np.zeros((self.num_cA + 1, h, w), dtype=np.float32)
+        imag_map = np.zeros((self.num_cA + 1, h, w), dtype=np.float32)
         for poly in text_polys:
             assert len(poly) == 1
             text_instance = [[poly[0][i], poly[0][i + 1]] for i in range(0, len(poly[0]), 2)]
@@ -183,15 +195,15 @@ class WLNetTargets(TextSnakeTargets):
             EachContour = temp_Points[:, 0] + 1j * temp_Points[:, 1]
             coeffs = pywt.wavedec(EachContour, self.wavelet_type, level=3)
 
-            for i in range(0, 20):
+            for i in range(0, self.num_cA):
                 real_map[i, :, :] = mask * coeffs[0][i].real + (1 - mask) * real_map[i, :, :]
                 imag_map[i, :, :] = mask * coeffs[0][i].imag + (1 - mask) * imag_map[i, :, :]
 
             yx = np.argwhere(mask > 0.5)
-            k_ind = np.ones((len(yx)), dtype=np.int64) * 20
+            k_ind = np.ones((len(yx)), dtype=np.int64) * self.num_cA
             y, x = yx[:, 0], yx[:, 1]
-            real_map[k_ind, y, x] = center_x-x
-            imag_map[k_ind, y, x] = center_y-y
+            real_map[k_ind, y, x] = center_x - x
+            imag_map[k_ind, y, x] = center_y - y
         return real_map, imag_map
 
     def generate_level_targets(self, img_size, text_polys, ignore_polys):

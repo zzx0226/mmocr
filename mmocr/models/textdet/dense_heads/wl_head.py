@@ -13,25 +13,23 @@ from .head_mixin import HeadMixin
 @HEADS.register_module()
 class WLHead(HeadMixin, BaseModule):
 
-    def __init__(
-            self,
-            in_channels,
-            scales,
-            nms_thr=0.1,
-            loss=dict(type='WLLoss', num_sample=100),
-            postprocessor=dict(
-                type='WLPostprocessor',
-                # text_repr_type='poly',
-                wavelet_type='sym5',
-                num_reconstr_points=100,
-                alpha=1.0,
-                beta=2.0,
-                score_thr=0.3),
-            train_cfg=None,
-            test_cfg=None,
-            init_cfg=dict(type='Normal', mean=0, std=0.01, override=[dict(name='out_conv_cls'),
-                                                                     dict(name='out_conv_reg')]),
-            **kwargs):
+    def __init__(self,
+                 wavelet_type,
+                 in_channels,
+                 scales,
+                 nms_thr=0.1,
+                 loss=dict(type='WLLoss', num_sample=100),
+                 postprocessor=dict(type='WLPostprocessor',
+                                    wavelet_type='sym5',
+                                    num_reconstr_points=100,
+                                    alpha=1.0,
+                                    beta=2.0,
+                                    score_thr=0.3),
+                 train_cfg=None,
+                 test_cfg=None,
+                 init_cfg=dict(type='Normal', mean=0, std=0.01, override=[dict(name='out_conv_cls'),
+                                                                          dict(name='out_conv_reg')]),
+                 **kwargs):
         old_keys = ['text_repr_type', 'decoding_type', 'num_reconstr_points', 'alpha', 'beta', 'score_thr']
         for key in old_keys:
             if kwargs.get(key, None):
@@ -49,13 +47,27 @@ class WLHead(HeadMixin, BaseModule):
                 'https://github.com/open-mmlab/mmocr/pull/640'
                 ' for details.', UserWarning)
         BaseModule.__init__(self, init_cfg=init_cfg)
-        loss['wavelet_type'] = 'sym5'
+        loss['wavelet_type'] = wavelet_type
+        self.wavelet_type = wavelet_type
 
-        postprocessor['wavelet_type'] = 'sym5'
+        postprocessor['wavelet_type'] = wavelet_type
         postprocessor['nms_thr'] = nms_thr
         HeadMixin.__init__(self, loss, postprocessor)
 
         assert isinstance(in_channels, int)
+
+        if self.wavelet_type == 'sym5' or self.wavelet_type == 'bior4.4' or self.wavelet_type == 'db5':
+            self.num_cA = 20
+        elif self.wavelet_type == 'bior3.1':
+            self.num_cA = 15
+        elif self.wavelet_type == 'bior3.5':
+            self.num_cA = 22
+        elif self.wavelet_type == 'coif3' or self.wavelet_type == 'rbio2.8':
+            self.num_cA = 27
+            self.num_cD = [27, 37, 58]
+        elif self.wavelet_type == 'dmey':
+            self.num_cA = 65
+            self.num_cD = [65, 70, 80]
 
         self.downsample_ratio = 1.0
         self.in_channels = in_channels
@@ -65,7 +77,7 @@ class WLHead(HeadMixin, BaseModule):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
         self.out_channels_cls = 4
-        self.out_channels_reg = 42
+        self.out_channels_reg = self.num_cA * 2 + 2
 
         self.out_conv_cls = nn.Conv2d(self.in_channels, self.out_channels_cls, kernel_size=3, stride=1, padding=1)
         self.out_conv_reg = nn.Conv2d(self.in_channels, self.out_channels_reg, kernel_size=3, stride=1, padding=1)
@@ -111,6 +123,6 @@ class WLHead(HeadMixin, BaseModule):
 
     def _get_boundary_single(self, score_map, scale):
         assert len(score_map) == 2
-        assert score_map[1].shape[1] == 42
+        assert score_map[1].shape[1] == self.num_cA * 2 + 2
 
         return self.postprocessor(score_map, scale)

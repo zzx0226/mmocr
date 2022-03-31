@@ -25,10 +25,12 @@ from .bs_postprocessor_tb_new import BSPostprocessor_tb_new
 from .bs_postprocessor_bbox import BSPostprocessor_bbox
 from .bs_postprocessor_tb_icdar import BSPostprocessor_tb_icdar
 from .bs_postprocessor_icdar import BSPostprocessor_icdar
+from .wl_postprocessor_diff_weight import WLPostprocessor_diff_weight
+from .wl_postprocessor_direct import WLPostprocessor_direct
 
 __all__ = [
     'BasePostprocessor', 'PSEPostprocessor', 'PANPostprocessor', 'DBPostprocessor', 'DRRGPostprocessor', 'FCEPostprocessor',
     'TextSnakePostprocessor', 'BSPostprocessor', 'WLPostprocessor', 'BSFcosPostprocessor', 'HybridPostprocessor',
     'HybridTBPostprocessor', 'BSPostprocessor_tb', 'BSPostprocessor_tb_new', 'BSPostprocessor_bbox', 'BSPostprocessor_tb_icdar',
-    'BSPostprocessor_icdar'
+    'BSPostprocessor_icdar', 'WLPostprocessor_diff_weight', 'WLPostprocessor_direct'
 ]

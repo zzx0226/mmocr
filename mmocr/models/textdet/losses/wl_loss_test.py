@@ -27,7 +27,22 @@ class WLLoss_test(nn.Module):
         super().__init__()
         self.wavelet_type = wavelet_type
         self.ohem_ratio = ohem_ratio
-        self.wavelet = pywt.Wavelet('sym5')
+        self.wavelet = pywt.Wavelet(wavelet_type)
+        if self.wavelet_type == 'sym5' or self.wavelet_type == 'bior4.4' or self.wavelet_type == 'db5':
+            self.num_cA = 20
+            self.num_cD = [20, 31, 54]
+        elif self.wavelet_type == 'bior3.1':
+            self.num_cA = 15
+            self.num_cD = [15, 27, 51]
+        elif self.wavelet_type == 'bior3.5':
+            self.num_cA = 22
+            self.num_cD = [22, 33, 55]
+        elif self.wavelet_type == 'coif3' or self.wavelet_type == 'rbio2.8':
+            self.num_cA = 27
+            self.num_cD = [27, 37, 58]
+        elif self.wavelet_type == 'dmey':
+            self.num_cA = 65
+            self.num_cD = [65, 70, 80]
 
     def forward(self, preds, _, p3_maps, p4_maps, p5_maps):
         """Compute FCENet loss.
@@ -83,21 +98,21 @@ class WLLoss_test(nn.Module):
         reg_pred = pred[1].permute(0, 2, 3, 1).contiguous()
         gt = gt.permute(0, 2, 3, 1).contiguous()
 
-        k = 20
+        k = self.num_cA
         tr_pred = cls_pred[:, :, :, :2].view(-1, 2)
         tcl_pred = cls_pred[:, :, :, 2:].view(-1, 2)
         wl_pred_real = reg_pred[:, :, :, 0:k].view(-1, k)
         wl_pred_imag = reg_pred[:, :, :, k + 1:-1].view(-1, k)
-        x_center_pred = reg_pred[:, :, :, 20]
-        y_center_pred = reg_pred[:, :, :, 41]
+        x_center_pred = reg_pred[:, :, :, self.num_cA]
+        y_center_pred = reg_pred[:, :, :, self.num_cA * 2 + 1]
 
         tr_mask = gt[:, :, :, :1].view(-1)
         tcl_mask = gt[:, :, :, 1:2].view(-1)
         train_mask = gt[:, :, :, 2:3].view(-1)
         real_map = gt[:, :, :, 3:3 + k].view(-1, k)
         imag_map = gt[:, :, :, 4 + k:-1].view(-1, k)
-        x_center_gt = gt[:, :, :, 3 + 20]
-        y_center_gt = gt[:, :, :, 3 + 41]
+        x_center_gt = gt[:, :, :, 3 + self.num_cA]
+        y_center_gt = gt[:, :, :, 3 + self.num_cA * 2 + 1]
 
         tr_train_mask = train_mask * tr_mask
         device = real_map.device
@@ -131,9 +146,9 @@ class WLLoss_test(nn.Module):
 
             TotalNum = real_preds.shape[0]
             Matrix = torch.vstack((real_preds, real_gts, imag_preds, imag_gts))
-            level1_coeff = torch.zeros(TotalNum * 4, 20).float().cuda()
-            level2_coeff = torch.zeros(TotalNum * 4, 31).float().cuda()
-            level3_coeff = torch.zeros(TotalNum * 4, 54).float().cuda()
+            level1_coeff = torch.zeros(TotalNum * 4, self.num_cD[0]).float().cuda()
+            level2_coeff = torch.zeros(TotalNum * 4, self.num_cD[1]).float().cuda()
+            level3_coeff = torch.zeros(TotalNum * 4, self.num_cD[2]).float().cuda()
             wl_coeff = [Matrix, level1_coeff, level2_coeff, level3_coeff]
             rec = ptwt.waverec(wl_coeff, self.wavelet)
 

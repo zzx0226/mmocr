@@ -37,6 +37,22 @@ class WLPostprocessor(BasePostprocessor):
         self.score_thr = score_thr
         self.nms_thr = nms_thr
 
+        if self.wavelet_type == 'sym5' or self.wavelet_type == 'bior4.4' or self.wavelet_type == 'db5':
+            self.num_cA = 20
+            self.num_cD = [20, 31, 54]
+        elif self.wavelet_type == 'bior3.1':
+            self.num_cA = 15
+            self.num_cD = [15, 27, 51]
+        elif self.wavelet_type == 'bior3.5':
+            self.num_cA = 22
+            self.num_cD = [22, 33, 55]
+        elif self.wavelet_type == 'coif3' or self.wavelet_type == 'rbio2.8':
+            self.num_cA = 27
+            self.num_cD = [27, 37, 58]
+        elif self.wavelet_type == 'dmey':
+            self.num_cA = 65
+            self.num_cD = [65, 70, 80]
+
     def __call__(self, preds, scale):
         """
         Args:
@@ -55,10 +71,10 @@ class WLPostprocessor(BasePostprocessor):
         tcl_pred = cls_pred[2:].softmax(dim=0).data.cpu().numpy()
 
         reg_pred = preds[1][0].permute(1, 2, 0).data.cpu().numpy()
-        real_preds = reg_pred[:, :, :20]
-        imag_preds = reg_pred[:, :, 21:-1]
+        real_preds = reg_pred[:, :, :self.num_cA]
+        imag_preds = reg_pred[:, :, self.num_cA + 1:-1]
 
-        centers_x = reg_pred[:, :, 20]
+        centers_x = reg_pred[:, :, self.num_cA]
         centers_y = reg_pred[:, :, -1]
 
         score_pred = (tr_pred[1]**self.alpha) * (tcl_pred[1]**self.beta)
@@ -83,20 +99,34 @@ class WLPostprocessor(BasePostprocessor):
             center_x, center_y = centers_x[score_mask], centers_y[score_mask]
             score = score_map[score_mask].reshape(-1, 1)
             polygons = []
-            for i, (real, imag, dxy, x, y) in enumerate(zip(real_pred, imag_pred, dxy_c, center_x, center_y)):
-                # c = np.vstack((real, imag)).T
-                c = real + imag * 1j
-                # c[:, self.fourier_degree] = c[:, self.fourier_degree] + dxy
-                wl_coeff = c * scale
-                wl_coeff = [wl_coeff, np.zeros(20), np.zeros(31), np.zeros(54)]
+            c = real_pred + 1j * imag_pred
+            wl_coeff = c * scale
+            AreaNum = real_pred.shape[0]
+            level1_coeff = np.zeros((AreaNum, self.num_cD[0]))
+            level2_coeff = np.zeros((AreaNum, self.num_cD[1]))
+            level3_coeff = np.zeros((AreaNum, self.num_cD[2]))
+            wl_coeff = [wl_coeff, level1_coeff, level2_coeff, level3_coeff]
+            points = pywt.waverec(wl_coeff, pywt.Wavelet(self.wavelet_type))
+            # points = np.append(points.real, points.imag).reshape(AreaNum, 2, -1).T
+            points1 = np.hstack((points.real, points.imag)).reshape(AreaNum * 2, -1) + np.hstack(
+                (dxy_c.real[None].T, dxy_c.imag[None].T)).flatten()[None].T
+            points2 = points1 + np.hstack((center_x[None].T * scale, center_y[None].T * scale)).flatten()[None].T
+            points3 = np.transpose(points2.reshape(AreaNum, 2, 100), (0, 2, 1)).reshape(AreaNum, -1)
+            polygons = np.hstack((points3, score)).tolist()
+            # for i, (real, imag, dxy, x, y) in enumerate(zip(real_pred, imag_pred, dxy_c, center_x, center_y)):
+            #     # c = np.vstack((real, imag)).T
+            #     c = real + imag * 1j
+            #     # c[:, self.fourier_degree] = c[:, self.fourier_degree] + dxy
+            #     wl_coeff = c * scale
+            #     wl_coeff = [wl_coeff, np.zeros(20), np.zeros(31), np.zeros(54)]
 
-                points = pywt.waverec(wl_coeff, self.wavelet_type)
-                points = np.append(points.real, points.imag).reshape(2, -1).T
-                points[:, 0] = points[:, 0] + dxy.real + x * scale
-                points[:, 1] = points[:, 1] + dxy.imag + y * scale
+            #     points = pywt.waverec(wl_coeff, self.wavelet_type)
+            #     points = np.append(points.real, points.imag).reshape(2, -1).T
+            #     points[:, 0] = points[:, 0] + dxy.real + x * scale
+            #     points[:, 1] = points[:, 1] + dxy.imag + y * scale
 
-                points = np.append(points.flatten(), score[i][0]).tolist()
-                polygons.append(points)
+            #     points = np.append(points.flatten(), score[i][0]).tolist()
+            #     polygons.append(points)
             polygons = poly_nms(polygons, self.nms_thr)
             boundaries = boundaries + polygons
 

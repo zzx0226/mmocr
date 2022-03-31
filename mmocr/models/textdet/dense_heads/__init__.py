@@ -27,9 +27,12 @@ from .hybrid_head_tb import HybridHead_tb
 from .bs_head_tood import BS_TOODHead
 from .bs_head_tb import BSHead_tb
 from .bs_head_tb_icdar import BSHead_tb_icdar
+from .wl_head_diff_weight import WLHead_diff_weight
+from .wl_head_direct import WLHead_direct
+from .wl_head_chamfer import WLHead_chamfer
 
 __all__ = [
     'PSEHead', 'PANHead', 'DBHead', 'FCEHead', 'TextSnakeHead', 'DRRGHead', 'HeadMixin', 'BSHead', 'BSHead_BBOXES', 'WLHead',
     'BS_FCOSHead', 'WLHead_fcos', 'BS_FCOSHead_Att', 'HybridHead', 'FCE_FCOSHead', 'BS_FCOSHead_tb', 'HybridHead_tb',
-    'BS_TOODHead', 'BSHead_tb', "BSHead_tb_icdar"
+    'BS_TOODHead', 'BSHead_tb', "BSHead_tb_icdar", 'WLHead_diff_weight', 'WLHead_direct', 'WLHead_chamfer'
 ]

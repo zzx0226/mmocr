@@ -28,7 +28,9 @@ def parse_args():
     parser.add_argument('--resume-from', help='The checkpoint file to resume from.')
     parser.add_argument('--no-validate', action='store_true', help='Whether not to evaluate the checkpoint during training.')
     group_gpus = parser.add_mutually_exclusive_group()
-    group_gpus.add_argument('--gpus', type=int, help='Number of gpus to use '
+    group_gpus.add_argument('--gpus',
+                            type=int,
+                            help='Nwowwumber of gpus to use '
                             '(only applicable to non-distributed training).')
     group_gpus.add_argument('--gpu-ids',
                             type=int,

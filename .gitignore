@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.ipynb
-
+*.pth
 # C extensions
 *.so
 
@@ -140,6 +140,6 @@ workspace.code-workspace
 results
 mmocr/core/font.TTF
 mmocr/.mim
-workdirs/
+# workdirs/
 .history/
 .dev/

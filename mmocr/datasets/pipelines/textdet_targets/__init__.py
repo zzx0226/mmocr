@@ -30,10 +30,13 @@ from .hybridnet_targets_tb_new import HybridNetTargets_tb_new
 from .bsnet_targets_tb5_new import BSNetTargets_tb_new
 from .bsnet_targets_tb5_icdar import BSNetTargets_tb_icdar
 from .bsnet_targets_icdar import BSNetTargets_icdar
+from .wlnet_targets_diff_weight import WLNetTargets_diff_weight
+from .wlnet_targets_direct import WLNetTargets_direct
 
 __all__ = [
     'BaseTextDetTargets', 'PANetTargets', 'PSENetTargets', 'DBNetTargets', 'FCENetTargets', 'TextSnakeTargets', 'DRRGTargets',
     'BSNetTargets', 'BSNetTargets_bbox', 'WLNetTargets', 'BSNetFcosTargets', 'WLNetFcosTargets', 'BSNetTargets_Out5',
     'HybridNetTargets', 'FCENetFcosTargets', 'BSNetFcosTargets_tb', 'HybridNetTargets_tb', 'BSNetFcosTargets_tb',
-    'BSNetTargets_tb', 'HybridNetTargets_tb_new', 'BSNetTargets_tb_new', 'BSNetTargets_tb_icdar', 'BSNetTargets_icdar'
+    'BSNetTargets_tb', 'HybridNetTargets_tb_new', 'BSNetTargets_tb_new', 'BSNetTargets_tb_icdar', 'BSNetTargets_icdar',
+    'WLNetTargets_diff_weight', 'WLNetTargets_direct'
 ]

@@ -1,4 +1,4 @@
-wavelet_type = 'sym5'
+wavelet_type = 'dmey'
 reconstr_points = 50
 
 model = dict(type='WLNet',
@@ -21,6 +21,7 @@ model = dict(type='WLNet',
                        relu_before_extra_convs=True,
                        act_cfg=None),
              bbox_head=dict(type='WLHead',
+                            wavelet_type=wavelet_type,
                             in_channels=256,
                             scales=(8, 16, 32),
                             loss=dict(type='WLLoss_test', wavelet_type=wavelet_type),
